@@ -5,6 +5,7 @@
 #include <vector>
 #include <math.h>
 #include <queue>
+#include <algorithm>
 
 using namespace std;
 
@@ -13,10 +14,24 @@ typedef vector<vector<int>> graph;
 struct problem {
 	int n;
 	int nobs;
-	int a;
-	int b;
+	double t;
 	vector<coord> points;
 	vector<coord> obstacle_vert;
+};
+
+problem pr;
+
+struct edge {
+	int p1;
+	int p2;
+	double dist;
+	//integer when over number of points then is an obstacle_vert
+	vector<int> shortest_path;
+	bool straight_line;
+
+	bool operator > (const edge& edg) const {
+		return(dist>edg.dist);
+	}
 };
 
 class CompareDist
@@ -27,7 +42,7 @@ public:
     }
 };
 
-problem readFile(char filename[]) {
+void readFile(char filename[]) {
 	cout << "Reading dataset: " << filename << endl;
 	ifstream file(filename);
 	int n, nobs,a,b;
@@ -40,9 +55,8 @@ problem readFile(char filename[]) {
 	problem prbl;
 	prbl.n = n;
 	prbl.nobs = nobs;
-	prbl.a = a;
-	prbl.b = b;
-	cout << "problem parameters " << prbl.n << " " << prbl.nobs << " "<< prbl.a << " " << prbl.b << endl;
+	prbl.t = a/b;
+	cout << "problem parameters " << prbl.n << " " << prbl.nobs << " "<< prbl.t << endl;
 	int coord1,coord2;
 
 	if (file.is_open()) {
@@ -58,16 +72,24 @@ problem readFile(char filename[]) {
 	prbl.points = points;
 	prbl.obstacle_vert = obstacle_vert;
 	file.close();
-	return prbl;
+	pr = prbl;
 }
 
 double euclidean_distance(coord p1, coord p2) {
 	return sqrt(pow(double(p1.first-p2.first),2)+pow(double(p1.second-p2.second),2));
 }
 
-double dijkstra_shortest_path(int n, graph& tspanner, vector<coord>& points, int source, int target) {
-	vector<double> distances(n,-1);
-	vector<bool> visited(n,false);
+coord getpoint(int i) {
+	if(i<pr.n) {
+		return pr.points[i];
+	} else {
+		return pr.obstacle_vert[i-pr.n];
+	}
+}
+
+double dijkstra_shortest_path(graph& tspanner, int source, int target) {
+	vector<double> distances(pr.n,-1);
+	vector<bool> visited(pr.n,false);
 	priority_queue<pair<int,int>,vector<pair<int,int>>,CompareDist> pq;
 	//priority queue has the pair: priority,point_number
 	pq.push(make_pair(0,source));
@@ -82,8 +104,9 @@ double dijkstra_shortest_path(int n, graph& tspanner, vector<coord>& points, int
 		if(!visited[prior_point.second]) {
 			visited[prior_point.second] = true;
 			for(int i=0;i<neighbors.size();++i) {
-				alt_dist = distances[prior_point.second]+euclidean_distance(points[prior_point.second],points[neighbors[i]]);
+				alt_dist = distances[prior_point.second]+euclidean_distance(getpoint(prior_point.second),getpoint(neighbors[i]));
 				if(distances[neighbors[i]]==-1 || alt_dist<distances[neighbors[i]]) {
+					//TODO:Must add in dijsktra the returning of this set of edges that make the shortest path
 					distances[neighbors[i]] = alt_dist;
 					pq.push(make_pair(alt_dist,neighbors[i]));
 				}
@@ -128,39 +151,73 @@ bool edges_intersect(coord p1, coord p2, coord v1, coord v2) {
 	return false;
 }
 
-bool edge_intersects_obstacle(int p1, int p2, vector<coord>& points, vector<coord>& obstacle_vert){
-	int n = obstacle_vert.size();
-	if(edges_intersect(points[p1],points[p2],obstacle_vert[n-1],obstacle_vert[0])) {
+bool edge_intersects_obstacle(int p1, int p2){
+	if(edges_intersect(getpoint(p1),getpoint(p2),getpoint(pr.n+pr.nobs-1),getpoint(pr.n))) {
 		return true;
 	}
-	for(int i=1;i<n;++i) {
-		if(edges_intersect(points[p1],points[p2],obstacle_vert[i-1],obstacle_vert[i])) {
+	for(int i=1;i<pr.nobs;++i) {
+		if(edges_intersect(getpoint(p1),getpoint(p2),getpoint(pr.n+i-1),getpoint(pr.n+i))) {
 			return true;
 		}
 	}
 	return false;
 }
 
+vector<edge> find_all_edges() {
+	vector<edge> all_edges;
+	edge edg;
+	for(int i=0;i<pr.n;++i){
+		for(int j=i+1;j<pr.n;++j) {
+			edg.p1 = i;
+			edg.p2 = j;
+			if(edge_intersects_obstacle(i, j)) {
+				edg.straight_line = false;
+				//TODO: visibility graph and finding path
+				//If an edge intersects any other edge of the obstacle then do visibility graph and compute
+				//distance using dijsktra in the visibility graph between the two points (including the two points
+				//and the obstacle vertices, adding only the edges that do not cross the obstacle).
+			}
+			else {
+				edg.dist = euclidean_distance(getpoint(i), getpoint(j));
+				edg.straight_line = true;
+				all_edges.push_back(edg);
+			}
+		}
+	}
+
+	sort(all_edges.begin(),all_edges.end(),greater<edge>());
+	return all_edges;
+}
+
+void greedy_tspanner(graph& tspanner, vector<edge> edges){
+	double dist;
+	for(int i=0;i<edges.size();++i) {
+		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2);
+		if(dist>pr.t*euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2))) {
+			if(edges[i].straight_line) {
+				insert_edge(tspanner, edges[i].p1, edges[i].p2);
+			} else {
+				//TODO: insert shortest path of the edge
+			}
+		}
+	}
+}
+
 int main() {
 	char filename[] = "Data_examples/geometricspanners.txt";
-	problem pr = readFile(filename);
+	readFile(filename);
 	graph tspanner(pr.n, vector<int>(0));
 
 //	Example of dijkstra distance
-	vector<coord> points = {make_pair(0,0),make_pair(0,1),make_pair(1,1),make_pair(1,2)};
+	//vector<coord> points = {make_pair(0,0),make_pair(0,1),make_pair(1,1),make_pair(1,2)};
 //    insert_edge(tspanner, 0, 1);
 //    insert_edge(tspanner,0, 2);
 //    insert_edge(tspanner,1,3);
 //    insert_edge(tspanner,1,2);
 
-	//TODO: Missing iterating over all pair of points (edges) and sorting them by distance
-	//If an edge intersects any other edge of the obstacle then do visibility graph and compute
-	//distance using dijsktra in the visibility graph between the two points (including the two points
-	//and the obstacle vertices, adding only the edges that do not cross the obstacle).
-	//Must add in dijsktra the returning of this set of edges that make the shortest path
-	//Do greedy algorithm with this sorted list. Adding edges or the shortest paths in the visibility graph
-	//between the two points
+	vector<edge> all_edges_sorted = find_all_edges();
 
-	double shortest_dist = dijkstra_shortest_path(pr.n,tspanner,pr.points,1,2);
+	greedy_tspanner(tspanner,all_edges_sorted);
+
 
 }
