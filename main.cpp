@@ -32,6 +32,23 @@ struct edge {
 	bool operator > (const edge& edg) const {
 		return(dist>edg.dist);
 	}
+
+	//tested
+	bool operator == (const edge& edg) const {
+			return((edg.p1==p1 && edg.p2==p2)||
+					(edg.p1==p2 && edg.p2==p1));
+	}
+};
+
+struct event {
+	int p;
+	double angle;
+	bool starting;
+	edge segment;
+
+	bool operator > (const event& evt) const {
+			return(angle>evt.angle);
+	}
 };
 
 class CompareDist
@@ -42,6 +59,7 @@ public:
     }
 };
 
+//tested
 void readFile(char filename[]) {
 	cout << "Reading dataset: " << filename << endl;
 	ifstream file(filename);
@@ -87,6 +105,7 @@ coord getpoint(int i) {
 	}
 }
 
+//tested
 double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<int>& path) {
 	vector<double> distances(pr.n+pr.nobs,-1);
 	vector<int> previous(pr.n+pr.nobs,-1);
@@ -127,6 +146,7 @@ double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<in
 	return distances[target];
 }
 
+//tested
 void insert_edge(graph& tspanner, int p1, int p2) {
 	tspanner[p1].push_back(p2);
 	tspanner[p2].push_back(p1);
@@ -141,6 +161,7 @@ int orientation_3_points(coord p1,coord p2, coord p3) {
     return (val > 0)? 1: 2; // clock or counterclock wise order
 }
 
+//tested
 bool edges_intersect(coord p1, coord p2, coord v1, coord v2) {
 	// Find the four orientations needed for general and
 	// special cases
@@ -170,19 +191,93 @@ bool edge_intersects_obstacle(int p1, int p2){
 	return false;
 }
 
+double compute_angle(coord p1, coord p, coord p2) {
+	coord v1 = make_pair(p2.first-p.first,p2.second-p.second);
+	coord v2 = make_pair(p1.first-p.first,p1.second-p.second);
+	int dot = v1.first*v2.first + v1.second*v2.second;
+	int det = v1.first*v2.second - v1.second*v2.first;
+	return atan2(-det, -dot)+M_PI;
+}
+
+//TODO: change infinity smarter
+coord infinity_point(0,10000);
+void insert_segment_events(vector<event>& events,int i, int p, int obst1, int obst2) {
+	event evt1;
+	event evt2;
+	edge segment;
+	segment.p1 = obst1;
+	segment.p2 = obst2;
+	segment.straight_line=true;
+	evt1.segment = segment;
+	evt2.segment = segment;
+	evt1.p = obst1;
+	evt2.p = obst2;
+	evt1.angle = compute_angle(infinity_point,getpoint(p),getpoint(obst1));
+	evt2.angle = compute_angle(infinity_point,getpoint(p),getpoint(obst2));
+	if(edges_intersect(getpoint(p),infinity_point,getpoint(obst1),getpoint(obst2))) {
+		if(evt1.angle<evt2.angle) {
+			evt1.starting=false;
+			evt2.starting=true;
+		} else {
+			evt1.starting=true;
+			evt2.starting=false;
+		}
+	}
+	else {
+		if(evt1.angle<evt2.angle) {
+			evt1.starting=true;
+			evt2.starting=false;
+		} else{
+			evt1.starting=false;
+			evt2.starting=true;
+		}
+	}
+	events[i] = evt1;
+	events[i+pr.nobs] = evt2;
+}
+
+void visibility_point(graph& visibility, int p1) {
+	vector<event> events(2*pr.nobs);
+	insert_segment_events(events,0, p1, pr.n+pr.nobs-1, pr.n);
+	for(int i=1;i<pr.nobs;++i) {
+		insert_segment_events(events,i, p1, pr.n+i-1, pr.n+i);
+	}
+	sort(events.begin(),events.end(),greater<event>());
+
+
+}
+
+void insert_obstacle_edges(graph& visibility) {
+	insert_edge(visibility,pr.n+pr.nobs-1,pr.n);
+	for(int i=1;i<pr.nobs;++i) {
+		insert_edge(visibility,pr.n+i-1,pr.n+i);
+	}
+}
+
+graph visibility_graph(int p1, int p2) {
+	graph visibility(pr.n+pr.nobs, vector<int>(0));
+	insert_obstacle_edges(visibility);
+	visibility_point(visibility,p1);
+	visibility_point(visibility,p2);
+	return visibility;
+}
+
 vector<edge> find_all_edges() {
 	vector<edge> all_edges;
 	edge edg;
+	graph vis_gr;
+	double dist;
 	for(int i=0;i<pr.n;++i){
 		for(int j=i+1;j<pr.n;++j) {
 			edg.p1 = i;
 			edg.p2 = j;
 			if(edge_intersects_obstacle(i, j)) {
 				edg.straight_line = false;
-				//TODO: visibility graph and finding path
-				//If an edge intersects any other edge of the obstacle then do visibility graph and compute
-				//distance using dijsktra in the visibility graph between the two points (including the two points
-				//and the obstacle vertices, adding only the edges that do not cross the obstacle).
+				vis_gr = visibility_graph(i,j);
+				vector<int> path;
+				dist = dijkstra_shortest_path(vis_gr,i,j,path);
+				edg.dist = dist;
+				edg.shortest_path = path;
 			}
 			else {
 				edg.dist = euclidean_distance(getpoint(i), getpoint(j));
@@ -255,6 +350,14 @@ int main() {
     vector<int> path5;
     cout << dijkstra_shortest_path(tspanner, 1,3,path5) << endl;
     print_vector(path5);*/
+
+	cout << compute_angle(make_pair(1,0), make_pair(0,0), make_pair(1,0))*180/M_PI << endl;
+	cout << compute_angle(make_pair(1,0), make_pair(0,0), make_pair(0,1))*180/M_PI << endl;
+	cout << compute_angle(make_pair(-1,0), make_pair(0,0), make_pair(1,0))*180/M_PI << endl;
+	cout << compute_angle(make_pair(1,0), make_pair(0,0), make_pair(1,-1))*180/M_PI << endl;
+	cout << compute_angle(make_pair(0,1), make_pair(0,0), make_pair(-1,-1))*180/M_PI << endl;
+	cout << compute_angle(make_pair(-1,0), make_pair(0,0), make_pair(-1,1))*180/M_PI << endl;
+
 
 	vector<edge> all_edges_sorted = find_all_edges();
 
