@@ -87,9 +87,10 @@ coord getpoint(int i) {
 	}
 }
 
-double dijkstra_shortest_path(graph& tspanner, int source, int target) {
-	vector<double> distances(pr.n,-1);
-	vector<bool> visited(pr.n,false);
+double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<int>& path) {
+	vector<double> distances(pr.n+pr.nobs,-1);
+	vector<int> previous(pr.n+pr.nobs,-1);
+	vector<bool> visited(pr.n+pr.nobs,false);
 	priority_queue<pair<int,int>,vector<pair<int,int>>,CompareDist> pq;
 	//priority queue has the pair: priority,point_number
 	pq.push(make_pair(0,source));
@@ -100,23 +101,29 @@ double dijkstra_shortest_path(graph& tspanner, int source, int target) {
 	while(!pq.empty()){
 		prior_point = pq.top();
 		pq.pop();
+		if(prior_point.second == target) {
+			int curr=target;
+			while(curr!=source) {
+				path.push_back(curr);
+				curr=previous[curr];
+			}
+			path.push_back(curr);
+			return distances[target];
+		}
 		neighbors = tspanner[prior_point.second];
 		if(!visited[prior_point.second]) {
 			visited[prior_point.second] = true;
 			for(int i=0;i<neighbors.size();++i) {
 				alt_dist = distances[prior_point.second]+euclidean_distance(getpoint(prior_point.second),getpoint(neighbors[i]));
 				if(distances[neighbors[i]]==-1 || alt_dist<distances[neighbors[i]]) {
-					//TODO:Must add in dijsktra the returning of this set of edges that make the shortest path
 					distances[neighbors[i]] = alt_dist;
+					previous[neighbors[i]] = prior_point.second;
 					pq.push(make_pair(alt_dist,neighbors[i]));
 				}
 			}
 		}
 	}
-	/*for(int i=0;i<distances.size();++i) {
-		cout<<distances[i]<<endl;
-	}*/
-	//TODO: this can be returned before computing all distances
+
 	return distances[target];
 }
 
@@ -146,7 +153,7 @@ bool edges_intersect(coord p1, coord p2, coord v1, coord v2) {
 	if (o1 != o2 && o3 != o4)
 		return true;
 
-	//TODO: this assumes general position of points
+	//This assumes general position of points
 
 	return false;
 }
@@ -191,29 +198,63 @@ vector<edge> find_all_edges() {
 
 void greedy_tspanner(graph& tspanner, vector<edge> edges){
 	double dist;
+	vector<int> shortest_path;
+	vector<int> unused;
 	for(int i=0;i<edges.size();++i) {
-		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2);
+		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2,unused);
 		if(dist>pr.t*euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2))) {
 			if(edges[i].straight_line) {
 				insert_edge(tspanner, edges[i].p1, edges[i].p2);
 			} else {
-				//TODO: insert shortest path of the edge
+				shortest_path = edges[i].shortest_path;
+				for(int j=1;j<shortest_path.size();++j) {
+					insert_edge(tspanner,shortest_path[j-1],shortest_path[j]);
+				}
 			}
 		}
+	}
+}
+
+void print_vector(vector<int> vec) {
+	cout<<"path"<<endl;
+	for(int i=0;i<vec.size();++i) {
+		cout<<vec[i]<<endl;
 	}
 }
 
 int main() {
 	char filename[] = "Data_examples/geometricspanners.txt";
 	readFile(filename);
-	graph tspanner(pr.n, vector<int>(0));
-
+	graph tspanner(pr.n+pr.nobs, vector<int>(0));
+	/*graph tspanner(4, vector<int>(0));
 //	Example of dijkstra distance
-	//vector<coord> points = {make_pair(0,0),make_pair(0,1),make_pair(1,1),make_pair(1,2)};
-//    insert_edge(tspanner, 0, 1);
-//    insert_edge(tspanner,0, 2);
-//    insert_edge(tspanner,1,3);
-//    insert_edge(tspanner,1,2);
+	vector<coord> points = {make_pair(0,0),make_pair(0,1),make_pair(1,1),make_pair(1,2)};
+	pr.points = points;
+	pr.n=4;
+    insert_edge(tspanner, 0, 1);
+    insert_edge(tspanner,1, 2);
+    insert_edge(tspanner,2,3);
+    //insert_edge(tspanner,1,2);
+
+    vector<int> path1;
+    cout << dijkstra_shortest_path(tspanner, 1,0,path1) << endl;
+    print_vector(path1);
+    cout << "aaaaaaaa" << endl;
+    vector<int> path2;
+    cout << dijkstra_shortest_path(tspanner, 2,0,path2) << endl;
+    print_vector(path2);
+    cout << "aaaaaaaa" << endl;
+    vector<int> path3;
+    cout << dijkstra_shortest_path(tspanner, 0,3,path3) << endl;
+    print_vector(path3);
+    cout << "aaaaaaaa" << endl;
+    vector<int> path4;
+    cout << dijkstra_shortest_path(tspanner, 2,3,path4) << endl;
+    print_vector(path4);
+    cout << "aaaaaaaa" << endl;
+    vector<int> path5;
+    cout << dijkstra_shortest_path(tspanner, 1,3,path5) << endl;
+    print_vector(path5);*/
 
 	vector<edge> all_edges_sorted = find_all_edges();
 
