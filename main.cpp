@@ -6,10 +6,12 @@
 #include <math.h>
 #include <queue>
 #include <algorithm>
+#include <map>
+#include <limits>
 
 using namespace std;
 
-typedef pair<int,int> coord;
+typedef pair<double,double> coord;
 typedef vector<vector<int>> graph;
 struct problem {
 	int n;
@@ -199,8 +201,7 @@ double compute_angle(coord p1, coord p, coord p2) {
 	return atan2(-det, -dot)+M_PI;
 }
 
-//TODO: change infinity smarter
-coord infinity_point(0,10000);
+coord infinity_point(0,numeric_limits<int>::max());
 void insert_segment_events(vector<event>& events,int i, int p, int obst1, int obst2) {
 	event evt1;
 	event evt2;
@@ -236,14 +237,64 @@ void insert_segment_events(vector<event>& events,int i, int p, int obst1, int ob
 	events[i+pr.nobs] = evt2;
 }
 
-void visibility_point(graph& visibility, int p1) {
-	vector<event> events(2*pr.nobs);
-	insert_segment_events(events,0, p1, pr.n+pr.nobs-1, pr.n);
+//tested
+coord find_intersection(coord p1, coord p2, coord v1, coord v2) {
+	double m1,b1,m2,b2;
+	m1 = (p2.second-p1.second)/(p2.first-p1.first);
+	b1 = (p2.first*p1.second-p1.first*p2.second)/(p2.first-p1.first);
+	m2 = (v2.second-v1.second)/(v2.first-v1.first);
+	b2 = (v2.first*v1.second-v1.first*v2.second)/(v2.first-v1.first);
+	double c = (b2-b1)/(m1-m2);
+	return make_pair(c,m1*c+b1);
+}
+
+void initiate_status_segment(map<double,edge>& status, int p, int obs1, int obs2) {
+	if(edges_intersect(getpoint(p),infinity_point,getpoint(obs1),getpoint(obs2))) {
+		coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(obs1),getpoint(obs2));
+		edge edg;
+		edg.p1 = obs1;
+		edg.p2 = obs2;
+		edg.straight_line = true;
+		edg.dist = euclidean_distance(getpoint(obs1),getpoint(obs2));
+		status[euclidean_distance(getpoint(p),intersection)] = edg;
+	}
+}
+
+void initiate_status(map<double,edge>& status, int p){
+	initiate_status_segment(status, p, pr.n+pr.nobs-1, pr.n);
 	for(int i=1;i<pr.nobs;++i) {
-		insert_segment_events(events,i, p1, pr.n+i-1, pr.n+i);
+		initiate_status_segment(status, p, pr.n+i-1, pr.n+i);
+	}
+}
+
+void visibility_point(graph& visibility, int p) {
+	vector<event> events(2*pr.nobs);
+	insert_segment_events(events,0, p, pr.n+pr.nobs-1, pr.n);
+	for(int i=1;i<pr.nobs;++i) {
+		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i);
 	}
 	sort(events.begin(),events.end(),greater<event>());
 
+	map<double,edge> status;
+	initiate_status(status, p);
+
+
+	//status.begin()->first << "] = " << themap.begin()->second
+
+	event evt;
+	edge edg;
+	for(int i=0;i<events.size();++i) {
+		evt = events[i];
+		//TODO: IMPORTANT how is the distance to the point treated?? all distances should be updated??
+		if(evt.starting) {
+
+		} else {
+
+		}
+		//TODO: be careful with inserting twice segments (not controlled currently)
+		edg = status.begin()->second;
+		insert_edge(visibility, p,edg.p2);
+	}
 
 }
 
@@ -351,13 +402,18 @@ int main() {
     cout << dijkstra_shortest_path(tspanner, 1,3,path5) << endl;
     print_vector(path5);*/
 
-	cout << compute_angle(make_pair(1,0), make_pair(0,0), make_pair(1,0))*180/M_PI << endl;
-	cout << compute_angle(make_pair(1,0), make_pair(0,0), make_pair(0,1))*180/M_PI << endl;
-	cout << compute_angle(make_pair(-1,0), make_pair(0,0), make_pair(1,0))*180/M_PI << endl;
-	cout << compute_angle(make_pair(1,0), make_pair(0,0), make_pair(1,-1))*180/M_PI << endl;
-	cout << compute_angle(make_pair(0,1), make_pair(0,0), make_pair(-1,-1))*180/M_PI << endl;
-	cout << compute_angle(make_pair(-1,0), make_pair(0,0), make_pair(-1,1))*180/M_PI << endl;
+	/*cout << compute_angle(make_pair(0,1), make_pair(2,1), make_pair(3,4))*180/M_PI << endl;
+	cout << compute_angle(make_pair(2,1), make_pair(0,1), make_pair(3,4))*180/M_PI << endl;
+	cout << compute_angle(make_pair(0,1), make_pair(3,4), make_pair(2,1))*180/M_PI << endl;
+	cout << compute_angle(make_pair(2,1), make_pair(3,4), make_pair(0,1))*180/M_PI << endl;
+	cout << compute_angle(make_pair(3,4), make_pair(0,1), make_pair(2,1))*180/M_PI << endl;
+	cout << compute_angle(make_pair(3,4), make_pair(2,1), make_pair(0,1))*180/M_PI << endl;*/
 
+	/*cout << find_intersection(make_pair(1.0,1.0), make_pair(2,2.0), make_pair(1,2.0), make_pair(2.0,1.0)).first << endl;
+	cout << find_intersection(make_pair(1.0,1.0), make_pair(2,2.0), make_pair(1,2.0), make_pair(2.0,1.0)).second << endl;
+	cout << find_intersection(make_pair(0.0,0.0), make_pair(4,4.0), make_pair(0,4), make_pair(4,0)).first << endl;
+	cout << find_intersection(make_pair(0.0,0.0), make_pair(4,4.0), make_pair(0,4), make_pair(4,0)).second << endl;
+*/
 
 	vector<edge> all_edges_sorted = find_all_edges();
 
