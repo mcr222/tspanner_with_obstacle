@@ -13,6 +13,8 @@
 #include <algorithm>
 
 
+#define PI 3.1415926
+
 using namespace std;
 
 
@@ -25,12 +27,19 @@ float temp = 0;
 
 
 float calcu_angle(int x1, int y1, int x_center, int y_center){
-    double x = (x1 - x_center)*1.000;
-    double y = (y1 - y_center)*1.000;
+    long double x = (x1 - x_center)*1.00000;
+    long double y = (y1 - y_center)*1.00000;
     //float x_unit = 100.000000*x / (x^2 + y^2);// multiply to keep the precision
     //float y_unit = 100*y / (x^2 + y^2);
     float angle = 0;
-    angle = atan2(width*x,-y);
+    angle = atan2(y,x)*180/PI;
+    
+    if (y >= 0){
+        angle = angle;
+    }
+    else if (y < 0) {
+        angle = 360 + angle;
+    }
     return angle;
 }
 
@@ -76,7 +85,7 @@ int main(int argc, const char * argv[]) {
         
     }
     // sort the array
-    for (int i = 0; i < n_obs; i++){
+    /*for (int i = 0; i < n_obs; i++){
         for (int j =0; j < n_obs-1; j++){
             if (angle_array[j] > angle_array[j+1]) {
                 temp = angle_array[j];
@@ -84,8 +93,8 @@ int main(int argc, const char * argv[]) {
                 angle_array[j+1] = temp;
             }
         }
-    }
-    //sort(angle_array,angle_array + n_obs);
+    }*/
+    sort(angle_array,angle_array + n_obs);
     
     //find the index
     int index_array [n_obs];
@@ -97,9 +106,11 @@ int main(int argc, const char * argv[]) {
         }
     }
     
+    //detect repeated points and retain only one.
     for(int i = 0; i < n_obs; i++) {
-        cout << angle_array[i] << " " << temp_array[index_array[i]] << " ";
-        cout << index_array[i] << "\n";
+        cout << angle_array[i] << " ";
+        //cout << index_array[i] << "\n";
+        cout << i << " " << obs_x_coord[index_array[i]] << " " << obs_y_coord[index_array[i]] << "\n";
     }
   
    
