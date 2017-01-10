@@ -30,7 +30,7 @@ float calcu_angle(int x1, int y1, int x_center, int y_center){
     //float x_unit = 100.000000*x / (x^2 + y^2);// multiply to keep the precision
     //float y_unit = 100*y / (x^2 + y^2);
     float angle = 0;
-    angle = atan2(x,-y);
+    angle = atan2(width*x,-y);
     return angle;
 }
 
@@ -91,18 +91,19 @@ int main(int argc, const char * argv[]) {
     int index_array [n_obs];
     for (int i = 0; i < n_obs; i++) {
         for (int j = 0; j < n_obs; j++) {
-            if (temp_array[i] == angle_array[j]) {
+            if (angle_array[i] == temp_array[j]) {
                 index_array[i] = j;
             }
         }
     }
     
     for(int i = 0; i < n_obs; i++) {
+        cout << angle_array[i] << " " << temp_array[index_array[i]] << " ";
         cout << index_array[i] << "\n";
     }
   
    
 
-    cout << 0 << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
+    cout << n_obs << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
     return 0;
 }
