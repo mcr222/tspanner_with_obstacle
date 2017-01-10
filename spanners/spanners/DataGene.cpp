@@ -20,7 +20,7 @@ using namespace std;
 
 
 int N = 300; // size of the bounding box
-int width = 10;// size of the bouding box for obstacle
+int width = 100;// size of the bouding box for obstacle
 int n = 0; // the number of vertices
 int n_obs = 0;// the number of vertices for the obstacle
 float temp = 0;
@@ -42,7 +42,10 @@ float calcu_angle(int x1, int y1, int x_center, int y_center){
     }
     return angle;
 }
-
+// detect intersection of an obstacle edge and a horizontal line
+bool intersect(int x1, int y1, int x2, int y2, int x, int y) {
+    return 1;
+}
 
 int main(int argc, const char * argv[]) {
     
@@ -63,7 +66,7 @@ int main(int argc, const char * argv[]) {
     y_coord[0] = width + rand() % (N - 2*width);
     
     //generate the obstacle vertices number
-    n_obs = 3 + rand() % (2*width);
+    n_obs = 3 + rand() % (width/5);
     
     //generate the obstacle points
     int obs_x_coord[n_obs];
@@ -108,12 +111,23 @@ int main(int argc, const char * argv[]) {
     
     //detect repeated points and retain only one.
     for(int i = 0; i < n_obs; i++) {
-        cout << angle_array[i] << " ";
+        //cout << angle_array[i] << " ";
         //cout << index_array[i] << "\n";
-        cout << i << " " << obs_x_coord[index_array[i]] << " " << obs_y_coord[index_array[i]] << "\n";
+        cout << obs_x_coord[index_array[i]] << " " << obs_y_coord[index_array[i]] << "\n";
     }
-  
-   
+    
+    cout << "\n";
+    //remove all points within the square box that contains the obstacle
+    for (int i = 1; i < n; i++) {
+        if ((x_coord[i] >= x_coord[0]-width && x_coord[i] <= x_coord[0]+width)&&(y_coord[i] >= y_coord[0]-width && y_coord[i]<= y_coord[0]+width)) {
+            continue;
+        }
+        cout << x_coord[i] << " " << y_coord[i] << "\n";
+    }
+    //or we could be more specific, we remove all points within the obstacle
+    //for (int i = 1; i < n; i++) {
+   //     if(intersect(<#int x1#>, <#int y1#>, <#int x2#>, <#int y2#>, <#int x#>, <#int y#>))
+    //}
 
     cout << n_obs << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
     return 0;
