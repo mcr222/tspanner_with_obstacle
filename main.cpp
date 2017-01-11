@@ -48,8 +48,8 @@ struct event {
 	bool starting;
 	edge segment;
 
-	bool operator > (const event& evt) const {
-			return(angle>evt.angle);
+	bool operator < (const event& evt) const {
+			return(angle<evt.angle);
 	}
 };
 
@@ -193,6 +193,7 @@ bool edge_intersects_obstacle(int p1, int p2){
 	return false;
 }
 
+//tested
 double compute_angle(coord p1, coord p, coord p2) {
 	coord v1 = make_pair(p2.first-p.first,p2.second-p.second);
 	coord v2 = make_pair(p1.first-p.first,p1.second-p.second);
@@ -254,9 +255,17 @@ struct status_segment {
 	int p2;
 	int p;
 
+	//OBS: if the touch (share one point p1 or p2), then they will be ordered randomly
+	//but because the shared point will be processed twice, then it will be at the bottom
+	//for one of the segments processed
 	bool operator < (const status_segment seg) const {
 		//as they are status segments, they will overlap from the points p view
-		coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(p1),getpoint(p2));
+		//coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(p1),getpoint(p2));
+		if((seg.p1==p1 && seg.p2==p2)||
+				(seg.p1==p2 && seg.p2==p1)) {
+			return false;
+		}
+
 		if(edges_intersect(getpoint(p),getpoint(seg.p1),getpoint(p1),getpoint(p2))) {
 			return true;
 		} else if(edges_intersect(getpoint(p),getpoint(seg.p2),getpoint(p1),getpoint(p2))) {
@@ -267,7 +276,7 @@ struct status_segment {
 			return false;
 		}
 
-		//TODO: this should never be reached (to check)
+		//TODO: this should never happen
 		return false;
 	}
 };
@@ -295,7 +304,7 @@ void visibility_point(graph& visibility, int p) {
 	for(int i=1;i<pr.nobs;++i) {
 		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i);
 	}
-	sort(events.begin(),events.end(),greater<event>());
+	sort(events.begin(),events.end(),less<event>());
 
 	set<status_segment> status;
 	initiate_status(status, p);
@@ -315,12 +324,14 @@ void visibility_point(graph& visibility, int p) {
 			status.erase(seg);
 		}
 		//TODO: be careful with inserting twice segments (not controlled currently)
+		//I don't think segments can be inserted twice (because they are processed twice but
+		//only one will be the closest to point p.
 		closest_seg = *(status.begin());
 		closest_edge.p1 = closest_seg.p1;
 		closest_edge.p2 = closest_seg.p2;
 
 		if(evt.segment == closest_edge) {
-			insert_edge(visibility, p, evt.segment.p2);
+			insert_edge(visibility, p, evt.p);
 		}
 	}
 
@@ -442,6 +453,32 @@ int main() {
 	cout << find_intersection(make_pair(0.0,0.0), make_pair(4,4.0), make_pair(0,4), make_pair(4,0)).first << endl;
 	cout << find_intersection(make_pair(0.0,0.0), make_pair(4,4.0), make_pair(0,4), make_pair(4,0)).second << endl;
 */
+
+	vector<coord> points = {make_pair(0,0),make_pair(0,2),make_pair(1,1),make_pair(1,3),make_pair(3,1),
+			make_pair(0,4),make_pair(2,3)};
+	pr.points = points;
+	pr.n = 5;
+	status_segment sg1, sg2, sg3,sg4;
+	sg1.p=0;
+	sg1.p1=1;
+	sg1.p2=2;
+	sg4.p=0;
+	sg4.p1=1;
+	sg4.p2=3;
+	sg2.p=0;
+	sg2.p1=3;
+	sg2.p2=4;
+	sg3.p=0;
+	sg3.p1 = 5;
+	sg3.p2 = 6;
+	set<status_segment> stat;
+	stat.insert(sg1);
+	stat.insert(sg4);
+	stat.insert(sg2);
+	stat.insert(sg3);
+	for (set<status_segment>::iterator it = stat.begin() ; it != stat.end(); ++it) {
+	    cout << ' ' << (*it).p1<< ' ' << (*it).p2<<endl;
+	}
 
 	vector<edge> all_edges_sorted = find_all_edges();
 
