@@ -6,7 +6,7 @@
 #include <math.h>
 #include <queue>
 #include <algorithm>
-#include <map>
+#include <set>
 #include <limits>
 
 using namespace std;
@@ -31,8 +31,8 @@ struct edge {
 	vector<int> shortest_path;
 	bool straight_line;
 
-	bool operator > (const edge& edg) const {
-		return(dist>edg.dist);
+	bool operator < (const edge& edg) const {
+		return(dist<edg.dist);
 	}
 
 	//tested
@@ -237,6 +237,7 @@ void insert_segment_events(vector<event>& events,int i, int p, int obst1, int ob
 	events[i+pr.nobs] = evt2;
 }
 
+//TODO: this is not used!
 //tested
 coord find_intersection(coord p1, coord p2, coord v1, coord v2) {
 	double m1,b1,m2,b2;
@@ -248,19 +249,40 @@ coord find_intersection(coord p1, coord p2, coord v1, coord v2) {
 	return make_pair(c,m1*c+b1);
 }
 
-void initiate_status_segment(map<double,edge>& status, int p, int obs1, int obs2) {
+struct status_segment {
+	int p1;
+	int p2;
+	int p;
+
+	bool operator < (const status_segment seg) const {
+		//as they are status segments, they will overlap from the points p view
+		coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(p1),getpoint(p2));
+		if(edges_intersect(getpoint(p),getpoint(seg.p1),getpoint(p1),getpoint(p2))) {
+			return true;
+		} else if(edges_intersect(getpoint(p),getpoint(seg.p2),getpoint(p1),getpoint(p2))) {
+			return true;
+		} else if(edges_intersect(getpoint(p),getpoint(p1),getpoint(seg.p1),getpoint(seg.p2))) {
+			return false;
+		} else if(edges_intersect(getpoint(p),getpoint(p2),getpoint(seg.p1),getpoint(seg.p2))) {
+			return false;
+		}
+
+		//TODO: this should never be reached (to check)
+		return false;
+	}
+};
+
+void initiate_status_segment(set<status_segment>& status, int p, int obs1, int obs2) {
 	if(edges_intersect(getpoint(p),infinity_point,getpoint(obs1),getpoint(obs2))) {
-		coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(obs1),getpoint(obs2));
-		edge edg;
+		status_segment edg;
 		edg.p1 = obs1;
 		edg.p2 = obs2;
-		edg.straight_line = true;
-		edg.dist = euclidean_distance(getpoint(obs1),getpoint(obs2));
-		status[euclidean_distance(getpoint(p),intersection)] = edg;
+		edg.p = p;
+		status.insert(edg);
 	}
 }
 
-void initiate_status(map<double,edge>& status, int p){
+void initiate_status(set<status_segment>& status, int p){
 	initiate_status_segment(status, p, pr.n+pr.nobs-1, pr.n);
 	for(int i=1;i<pr.nobs;++i) {
 		initiate_status_segment(status, p, pr.n+i-1, pr.n+i);
@@ -275,25 +297,31 @@ void visibility_point(graph& visibility, int p) {
 	}
 	sort(events.begin(),events.end(),greater<event>());
 
-	map<double,edge> status;
+	set<status_segment> status;
 	initiate_status(status, p);
 
-
-	//status.begin()->first << "] = " << themap.begin()->second
-
+	//TODO: check this!!!
 	event evt;
-	edge edg;
+	status_segment seg, closest_seg;
+	edge closest_edge;
+	seg.p = p;
 	for(int i=0;i<events.size();++i) {
 		evt = events[i];
-		//TODO: IMPORTANT how is the distance to the point treated?? all distances should be updated??
+		seg.p1 = evt.segment.p1;
+		seg.p2 = evt.segment.p2;
 		if(evt.starting) {
-
+			status.insert(seg);
 		} else {
-
+			status.erase(seg);
 		}
 		//TODO: be careful with inserting twice segments (not controlled currently)
-		edg = status.begin()->second;
-		insert_edge(visibility, p,edg.p2);
+		closest_seg = *(status.begin());
+		closest_edge.p1 = closest_seg.p1;
+		closest_edge.p2 = closest_seg.p2;
+
+		if(evt.segment == closest_edge) {
+			insert_edge(visibility, p, evt.segment.p2);
+		}
 	}
 
 }
@@ -337,8 +365,8 @@ vector<edge> find_all_edges() {
 			}
 		}
 	}
-
-	sort(all_edges.begin(),all_edges.end(),greater<edge>());
+	//TODO: check that ordered with smaller
+	sort(all_edges.begin(),all_edges.end(),less<edge>());
 	return all_edges;
 }
 
