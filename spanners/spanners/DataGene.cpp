@@ -11,6 +11,7 @@
 #include <math.h>
 #include <ctime>
 #include <algorithm>
+#include <vector>
 
 
 #define PI 3.1415926
@@ -43,9 +44,9 @@ float calcu_angle(int x1, int y1, int x_center, int y_center){
     return angle;
 }
 // detect intersection of an obstacle edge and a horizontal line
-bool intersect(int x1, int y1, int x2, int y2, int x, int y) {
-    return 1;
-}
+//bool intersect(int x1, int y1, int x2, int y2, int x, int y) {
+//    return 1;
+//}
 
 int main(int argc, const char * argv[]) {
     
@@ -109,14 +110,31 @@ int main(int argc, const char * argv[]) {
         }
     }
     
+    //add starting point to the end, to make a polygon
+    // polygon coordinates in order
+    int obs_x_polygon[n_obs+1];
+    int obs_y_polygon[n_obs+1];
+    for (int i=0; i<n_obs;i++) {
+        obs_x_polygon[i] = obs_x_coord[index_array[i]];
+        obs_y_polygon[i] = obs_y_coord[index_array[i]];
+    }
+    obs_x_polygon[n_obs] = obs_x_polygon[0];
+    obs_y_polygon[n_obs] = obs_y_polygon[0];
+    
+    /*
     //detect repeated points and retain only one.
     for(int i = 0; i < n_obs; i++) {
         //cout << angle_array[i] << " ";
         //cout << index_array[i] << "\n";
         cout << obs_x_coord[index_array[i]] << " " << obs_y_coord[index_array[i]] << "\n";
     }
-    
+    cout << obs_x_coord[index_array[0]] << " " << obs_y_coord[index_array[0]] << "\n";
     cout << "\n";
+     
+    for (int i = 0; i <= n_obs; i++) {
+        cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
+    }
+     
     //remove all points within the square box that contains the obstacle
     for (int i = 1; i < n; i++) {
         if ((x_coord[i] >= x_coord[0]-width && x_coord[i] <= x_coord[0]+width)&&(y_coord[i] >= y_coord[0]-width && y_coord[i]<= y_coord[0]+width)) {
@@ -124,10 +142,14 @@ int main(int argc, const char * argv[]) {
         }
         cout << x_coord[i] << " " << y_coord[i] << "\n";
     }
+     */
+    
     //or we could be more specific, we remove all points within the obstacle
-    //for (int i = 1; i < n; i++) {
-   //     if(intersect(<#int x1#>, <#int y1#>, <#int x2#>, <#int y2#>, <#int x#>, <#int y#>))
-    //}
+    // We have a polygon, and we have a query point, determine how many edges of the polygon intersect with the ray starting from query point upward.
+    //segment tree with range tree
+    for (int i = 0; i <= n_obs; i++) {
+        cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
+    }
 
     cout << n_obs << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
     return 0;
