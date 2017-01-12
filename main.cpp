@@ -75,7 +75,7 @@ void readFile(char filename[]) {
 	problem prbl;
 	prbl.n = n;
 	prbl.nobs = nobs;
-	prbl.t = a/b;
+	prbl.t = a/(double)b;
 	cout << "problem parameters " << prbl.n << " " << prbl.nobs << " "<< prbl.t << endl;
 	int coord1,coord2;
 
@@ -398,14 +398,14 @@ void visibility_point(graph& visibility, int p) {
 		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i);
 	}
 	sort(events.begin(),events.end(),less<event>());
-	print_vector(events);
+	//print_vector(events);
 
 	set<status_segment> status;
 	initiate_status(status, p);
-	cout << "initial status: " << endl;
+	/*cout << "initial status: " << endl;
 	for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
 		cout <<(*it).p1 << " " << (*it).p2 << endl;
-	}
+	}*/
 
 	event evt;
 	status_segment seg, closest_seg;
@@ -416,18 +416,18 @@ void visibility_point(graph& visibility, int p) {
 		evt = events[i];
 		seg.p1 = evt.segment.p1;
 		seg.p2 = evt.segment.p2;
-		cout << "status "<< evt.p << endl;
+		//cout << "status "<< evt.p << endl;
 		if(evt.starting) {
-			cout << "inserting: " << seg.p1 << seg.p2 << endl;
+			//cout << "inserting: " << seg.p1 << seg.p2 << endl;
 			status.insert(seg);
 		} else {
-			cout << "erasing: " << seg.p1 << seg.p2 << endl;
+			//cout << "erasing: " << seg.p1 << seg.p2 << endl;
 			status.erase(seg);
 		}
 
-		for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+		/*for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
 			cout <<(*it).p1 << " " << (*it).p2 << endl;
-		}
+		}*/
 
 		closest_seg = *(status.begin());
 		closest_edge.p1 = closest_seg.p1;
@@ -460,6 +460,13 @@ graph visibility_graph(int p1, int p2) {
 	return visibility;
 }
 
+void print_vector(vector<int> vec) {
+	for(int i=0;i<vec.size();++i) {
+		cout<<vec[i] << " ";
+	}
+	cout << endl;
+}
+
 vector<edge> find_all_edges() {
 	vector<edge> all_edges;
 	edge edg;
@@ -470,18 +477,25 @@ vector<edge> find_all_edges() {
 			edg.p1 = i;
 			edg.p2 = j;
 			if(edge_intersects_obstacle(i, j)) {
+				//cout << edg.p1 << " " << edg.p2 << endl;
 				edg.straight_line = false;
 				vis_gr = visibility_graph(i,j);
+				/*for(int i = 0;i<vis_gr.size();++i) {
+						cout << "row: " << i << endl;
+						print_vector(vis_gr[i]);
+				}*/
 				vector<int> path;
 				dist = dijkstra_shortest_path(vis_gr,i,j,path);
+				//print_vector(path);
+				//cout << "distance: " << dist << endl;
 				edg.dist = dist;
 				edg.shortest_path = path;
 			}
 			else {
 				edg.dist = euclidean_distance(getpoint(i), getpoint(j));
 				edg.straight_line = true;
-				all_edges.push_back(edg);
 			}
+			all_edges.push_back(edg);
 		}
 	}
 	//TODO: check that ordered with smaller
@@ -495,7 +509,8 @@ void greedy_tspanner(graph& tspanner, vector<edge> edges){
 	vector<int> unused;
 	for(int i=0;i<edges.size();++i) {
 		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2,unused);
-		if(dist>pr.t*euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2))) {
+		//cout << dist/euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2)) << endl;
+		if(dist == -1 || dist>pr.t*euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2))) {
 			if(edges[i].straight_line) {
 				insert_edge(tspanner, edges[i].p1, edges[i].p2);
 			} else {
@@ -508,17 +523,43 @@ void greedy_tspanner(graph& tspanner, vector<edge> edges){
 	}
 }
 
-void print_vector(vector<int> vec) {
-	for(int i=0;i<vec.size();++i) {
-		cout<<vec[i] << " ";
-	}
-	cout << endl;
+void writeFile(char filename[], graph& graph) {
+	cout << "Writting output"<< endl;
+    ifstream file(filename);
+    string str;
+    ofstream outputFile("output.txt");
+    while (getline(file, str))
+    {
+        outputFile << str << endl;
+    }
+
+    for(int i=0;i<graph.size();++i) {
+    	for(int j=0;j<graph[i].size();++j){
+    		outputFile << " " << graph[i][j];
+    	}
+    	outputFile << endl;
+    }
+
+
 }
 
 int main() {
 	char filename[] = "Data_examples/geometricspanners.txt";
 	readFile(filename);
 	graph tspanner(pr.n+pr.nobs, vector<int>(0));
+
+
+	vector<edge> all_edges_sorted = find_all_edges();
+
+	/*cout << "all edges: " << endl;
+	for(vector<edge>::iterator it = all_edges_sorted.begin();it!=all_edges_sorted.end();++it) {
+		cout <<(*it).p1 << " " << (*it).p2 << " " << (*it).straight_line << endl;
+	}*/
+
+	greedy_tspanner(tspanner,all_edges_sorted);
+
+	writeFile(filename, tspanner);
+
 	/*graph tspanner(4, vector<int>(0));
 //	Example of dijkstra distance
 	vector<coord> points = {make_pair(0,0),make_pair(0,1),make_pair(1,1),make_pair(1,2)};
@@ -572,18 +613,19 @@ int main() {
 
 	//TODO:output to file and plot
 
-	vector<coord> points = {make_pair(0,1)};
+	/*vector<coord> points = {make_pair(0,1)};
 	pr.points = points;
 	pr.n = 1;
 	vector<coord> obst_vert = {make_pair(3,4),make_pair(4,0),make_pair(2,1),make_pair(1,2),make_pair(1,3)};
 	pr.obstacle_vert = obst_vert;
-	pr.nobs = 5;
-	graph visibility(pr.n+pr.nobs, vector<int>(0));
+	pr.nobs = 5;*/
+	/*graph visibility(pr.n+pr.nobs, vector<int>(0));
 	visibility_point(visibility, 0);
 	for(int i = 0;i<visibility.size();++i) {
 		cout << "row: " << i << endl;
 		print_vector(visibility[i]);
-	}
+	}*/
+
 
 	/*pr.n = 5;
 	status_segment sg1, sg2, sg3,sg4;
@@ -607,10 +649,6 @@ int main() {
 	for (set<status_segment>::iterator it = stat.begin() ; it != stat.end(); ++it) {
 	    cout << ' ' << (*it).p1<< ' ' << (*it).p2<<endl;
 	}*/
-
-	//vector<edge> all_edges_sorted = find_all_edges();
-
-	//greedy_tspanner(tspanner,all_edges_sorted);
 
 
 }
