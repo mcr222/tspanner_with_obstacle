@@ -64,6 +64,7 @@ int main(int argc, const char * argv[]) {
     }
     
     //generate obstacle center
+    //bug detected
     x_coord[0] = width + rand() % (N - 2*width);
     y_coord[0] = width + rand() % (N - 2*width);
     
@@ -145,32 +146,7 @@ int main(int argc, const char * argv[]) {
     }
      
      
-     void precalc_values() {
-     
-     int   i, j=polyCorners-1 ;
-     
-     for(i=0; i<polyCorners; i++) {
-     if(polyY[j]==polyY[i]) {
-     constant[i]=polyX[i];
-     multiple[i]=0; }
-     else {
-     constant[i]=polyX[i]-(polyY[i]*polyX[j])/(polyY[j]-polyY[i])+(polyY[i]*polyX[i])/(polyY[j]-polyY[i]);
-     multiple[i]=(polyX[j]-polyX[i])/(polyY[j]-polyY[i]); }
-     j=i; }}
-     
-     bool pointInPolygon() {
-     
-     int   i, j=polyCorners-1 ;
-     bool  oddNodes=NO      ;
-     
-     for (i=0; i<polyCorners; i++) {
-     if ((polyY[i]< y && polyY[j]>=y
-     ||   polyY[j]< y && polyY[i]>=y)) {
-     oddNodes^=(y*multiple[i]+constant[i]<x); }
-     j=i; }
-     
-     return oddNodes; }
-     */
+    */
     
     //or we could be more specific, we remove all points within the obstacle
     // We have a polygon, and we have a query point, determine how many edges of the polygon intersect with the ray starting from query point upward.
@@ -194,23 +170,25 @@ int main(int argc, const char * argv[]) {
             multiple[i] = 0;
         }
         else {
-            constant[i] = obs_x_polygon[i]-(obs_y_polygon[i]*obs_x_polygon[relay])/(obs_y_polygon[relay]-obs_y_polygon[i])+(obs_y_polygon[i]*obs_x_polygon[i])/(obs_y_polygon[relay]-obs_y_polygon[i]);
+            constant[i] = obs_x_polygon[i]-(obs_y_polygon[i]*obs_x_polygon[relay])/(obs_y_polygon[relay]-obs_y_polygon[i])+
+            (obs_y_polygon[i]*obs_x_polygon[i])/(obs_y_polygon[relay]-obs_y_polygon[i]);
             multiple[i] = (float)(obs_x_polygon[relay]-obs_x_polygon[i])/(obs_y_polygon[relay]-obs_y_polygon[i]);
             relay = i;
         }
-        cout << multiple[i] << "\n";
+        //cout << multiple[i] << "\n";
     }
     //calculate the x-coordinate and compare with the point
     for (int temp=0; temp<n; temp++) {
-        cout << x_coord[temp] << " " << y_coord[temp] << "   ";
+        //cout << x_coord[temp] << " " << y_coord[temp] << "   ";
         int   j = n_obs;
         for (int i=0; i<n_obs; i++) {
-            if (((obs_y_polygon[i]< y_coord[temp] && obs_y_polygon[j]>=y_coord[temp]) || (obs_y_polygon[j]< y_coord[temp] && obs_y_coord[i]>=y_coord[temp]))) {
+            if (((obs_y_polygon[i]< y_coord[temp] && obs_y_polygon[j]>=y_coord[temp]) ||
+                 (obs_y_polygon[j]< y_coord[temp] && obs_y_polygon[i]>=y_coord[temp]))) {
                 Inside[temp]^=(y_coord[temp]*multiple[i]+constant[i]<(float)(1.00*x_coord[temp]));
             }
             j=i;
         }
-        cout << Inside[temp] << "\n";
+        //cout << Inside[temp] << "\n";
     }
     /*
     bool pointInPolygon(int x, int y) {
@@ -225,7 +203,11 @@ int main(int argc, const char * argv[]) {
     }
      */
     
-    
-    cout << n_obs << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
+    for (int i=0;i<n;i++) {
+        if (Inside[i] == 0) {
+            cout << x_coord[i] << " " << y_coord[i] << "\n";
+        }
+    }
+    //cout << n_obs << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
     return 0;
 }
