@@ -193,16 +193,23 @@ bool edge_intersects_obstacle(int p1, int p2){
 	return false;
 }
 
+bool parallel_vectors(coord v1, coord v2) {
+	return (v1.first*v2.first+v1.second*v2.second == sqrt(v1.first*v1.first+v1.second*v1.second)*
+			sqrt(v2.first*v2.first+v2.second*v2.second));
+}
 //tested
 double compute_angle(coord p1, coord p, coord p2) {
 	coord v1 = make_pair(p2.first-p.first,p2.second-p.second);
 	coord v2 = make_pair(p1.first-p.first,p1.second-p.second);
+//	if(parallel_vectors(v1,v2)) {
+//		return 0;
+//	}
 	int dot = v1.first*v2.first + v1.second*v2.second;
 	int det = v1.first*v2.second - v1.second*v2.first;
 	return atan2(-det, -dot)+M_PI;
 }
 
-coord infinity_point(0,numeric_limits<int>::max());
+coord infinity_point(0,100000);
 void insert_segment_events(vector<event>& events,int i, int p, int obst1, int obst2) {
 	event evt1;
 	event evt2;
@@ -240,7 +247,7 @@ void insert_segment_events(vector<event>& events,int i, int p, int obst1, int ob
 
 //TODO: this is not used!
 //tested
-coord find_intersection(coord p1, coord p2, coord v1, coord v2) {
+coord find_intersection_lines(coord p1, coord p2, coord v1, coord v2) {
 	double m1,b1,m2,b2;
 	m1 = (p2.second-p1.second)/(p2.first-p1.first);
 	b1 = (p2.first*p1.second-p1.first*p2.second)/(p2.first-p1.first);
@@ -250,35 +257,105 @@ coord find_intersection(coord p1, coord p2, coord v1, coord v2) {
 	return make_pair(c,m1*c+b1);
 }
 
+//tested
+bool point_in_segment(coord inters, coord p1, coord p2) {
+	coord v = make_pair(p1.first-p2.first,p1.second-p2.second);
+	double t = (inters.first-p2.first)/v.first;
+	//cout << "t: " << t << endl;
+	return (0<=t && t<=1);
+}
+
 struct status_segment {
 	int p1;
 	int p2;
 	int p;
 
+	//tested
 	//OBS: if the touch (share one point p1 or p2), then they will be ordered randomly
 	//but because the shared point will be processed twice, then it will be at the bottom
 	//for one of the segments processed
 	bool operator < (const status_segment seg) const {
 		//as they are status segments, they will overlap from the points p view
 		//coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(p1),getpoint(p2));
+		//cout << p1 << " " << p2 << " " << seg.p1 << " " << seg.p2 << endl;
 		if((seg.p1==p1 && seg.p2==p2)||
 				(seg.p1==p2 && seg.p2==p1)) {
+			//cout << "first false" << endl;
 			return false;
 		}
 
-		if(edges_intersect(getpoint(p),getpoint(seg.p1),getpoint(p1),getpoint(p2))) {
-			return true;
-		} else if(edges_intersect(getpoint(p),getpoint(seg.p2),getpoint(p1),getpoint(p2))) {
-			return true;
-		} else if(edges_intersect(getpoint(p),getpoint(p1),getpoint(seg.p1),getpoint(seg.p2))) {
-			return false;
-		} else if(edges_intersect(getpoint(p),getpoint(p2),getpoint(seg.p1),getpoint(seg.p2))) {
-			return false;
+		coord inters;
+		if(seg.p1!= p1 && seg.p1!=p2) {
+			if(edges_intersect(getpoint(p),getpoint(seg.p1),getpoint(p1),getpoint(p2))) {
+				//cout << "1st true" << endl;
+				return true;
+			}
+			else {
+				//cout << "inters1" << endl;
+				inters = find_intersection_lines(getpoint(p),getpoint(seg.p1),getpoint(p1),getpoint(p2));
+				if(point_in_segment(inters,getpoint(p1),getpoint(p2))) {
+					return false;
+				}
+			}
+		}
+		if(seg.p2!= p1 && seg.p2!=p2) {
+			if(edges_intersect(getpoint(p),getpoint(seg.p2),getpoint(p1),getpoint(p2))) {
+				//cout << "2nd true" << endl;
+				return true;
+			}
+			else {
+				//cout << "inters2" << endl;
+				inters = find_intersection_lines(getpoint(p),getpoint(seg.p2),getpoint(p1),getpoint(p2));
+				if(point_in_segment(inters,getpoint(p1),getpoint(p2))) {
+					return false;
+				}
+			}
+
+		}
+		if(p1!= seg.p1 && p1!=seg.p2) {
+			if(edges_intersect(getpoint(p),getpoint(p1),getpoint(seg.p1),getpoint(seg.p2))) {
+				//cout << "1st false" << endl;
+				return false;
+			}
+			else {
+				//cout << "inters3" << endl;
+				inters = find_intersection_lines(getpoint(p),getpoint(p1),getpoint(seg.p1),getpoint(seg.p2));
+				if(point_in_segment(inters,getpoint(seg.p1),getpoint(seg.p2))) {
+					return true;
+				}
+			}
+
+		}
+		if(p2!= seg.p1 && p2!=seg.p2) {
+			if(edges_intersect(getpoint(p),getpoint(p2),getpoint(seg.p1),getpoint(seg.p2))) {
+				//cout << "2nd false" << endl;
+				return false;
+			}
+			else {
+				//cout << "inters4" << endl;
+				inters = find_intersection_lines(getpoint(p),getpoint(p2),getpoint(seg.p1),getpoint(seg.p2));
+				if(point_in_segment(inters,getpoint(seg.p1),getpoint(seg.p2))) {
+					//cout << "inters4 true" << endl;
+					return true;
+				}
+			}
 		}
 
-		//TODO: this should never happen
-		return false;
+
+		//this is reached when segments share an edge and are ordered sideways
+		//thus they do not have an order from the p point of view but must be
+		//ordered anyway to be able to search in the set (binary search tree).
+		string this_seg = to_string(p1)+to_string(p2);
+		string other_seg = to_string(seg.p1)+to_string(seg.p2);
+		if(this_seg<other_seg) {
+			//cout << "last true" << endl;
+			return true;
+		} else {
+			//cout << "last false" << endl;
+			return false;
+		}
 	}
+
 };
 
 void initiate_status_segment(set<status_segment>& status, int p, int obs1, int obs2) {
@@ -298,6 +375,15 @@ void initiate_status(set<status_segment>& status, int p){
 	}
 }
 
+void print_vector(vector<event> vec) {
+	for(int i=0;i<vec.size();++i) {
+		cout << " p "<<getpoint(vec[i].p).first <<","<<getpoint(vec[i].p).second << " angle: " <<vec[i].angle<< " p1: " <<vec[i].segment.p1<< " p2: " <<vec[i].segment.p2
+				<< " start: " <<vec[i].starting;
+		cout << endl;
+	}
+	cout << endl;
+}
+
 void visibility_point(graph& visibility, int p) {
 	vector<event> events(2*pr.nobs);
 	insert_segment_events(events,0, p, pr.n+pr.nobs-1, pr.n);
@@ -305,23 +391,36 @@ void visibility_point(graph& visibility, int p) {
 		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i);
 	}
 	sort(events.begin(),events.end(),less<event>());
+	print_vector(events);
 
 	set<status_segment> status;
 	initiate_status(status, p);
+	cout << "initial status: " << endl;
+	for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+		cout <<(*it).p1 << " " << (*it).p2 << endl;
+	}
 
 	//TODO: check this!!!
 	event evt;
 	status_segment seg, closest_seg;
 	edge closest_edge;
+	set<int> visible_points;
 	seg.p = p;
 	for(int i=0;i<events.size();++i) {
 		evt = events[i];
 		seg.p1 = evt.segment.p1;
 		seg.p2 = evt.segment.p2;
+		cout << "status "<< evt.p << endl;
 		if(evt.starting) {
+			cout << "inserting: " << seg.p1 << seg.p2 << endl;
 			status.insert(seg);
 		} else {
+			cout << "erasing: " << seg.p1 << seg.p2 << endl;
 			status.erase(seg);
+		}
+
+		for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+			cout <<(*it).p1 << " " << (*it).p2 << endl;
 		}
 		//TODO: be careful with inserting twice segments (not controlled currently)
 		//I don't think segments can be inserted twice (because they are processed twice but
@@ -330,9 +429,14 @@ void visibility_point(graph& visibility, int p) {
 		closest_edge.p1 = closest_seg.p1;
 		closest_edge.p2 = closest_seg.p2;
 
-		if(evt.segment == closest_edge) {
-			insert_edge(visibility, p, evt.p);
+		if(status.size()==0 || evt.segment == closest_edge) {
+			//cout << "visible: " << evt.p << endl;
+			visible_points.insert(evt.p);
 		}
+	}
+
+	for(set<int>::iterator it=visible_points.begin();it!=visible_points.end();++it) {
+		insert_edge(visibility, p, *(it));
 	}
 
 }
@@ -401,10 +505,10 @@ void greedy_tspanner(graph& tspanner, vector<edge> edges){
 }
 
 void print_vector(vector<int> vec) {
-	cout<<"path"<<endl;
 	for(int i=0;i<vec.size();++i) {
-		cout<<vec[i]<<endl;
+		cout<<vec[i] << " ";
 	}
+	cout << endl;
 }
 
 int main() {
@@ -454,10 +558,24 @@ int main() {
 	cout << find_intersection(make_pair(0.0,0.0), make_pair(4,4.0), make_pair(0,4), make_pair(4,0)).second << endl;
 */
 
-	vector<coord> points = {make_pair(0,0),make_pair(0,2),make_pair(1,1),make_pair(1,3),make_pair(3,1),
-			make_pair(0,4),make_pair(2,3)};
+	//cout << point_in_segment(make_pair(1,1),make_pair(0,0), make_pair(2,2)) << endl;
+	//cout << point_in_segment(make_pair(3,3),make_pair(0,0), make_pair(2,2)) << endl;
+
+
+	vector<coord> points = {make_pair(0,0)};
 	pr.points = points;
-	pr.n = 5;
+	pr.n = 1;
+	vector<coord> obst_vert = {make_pair(0,2),make_pair(1,3),make_pair(3,1),make_pair(1,1)};
+	pr.obstacle_vert = obst_vert;
+	pr.nobs = 4;
+	graph visibility(pr.n+pr.nobs, vector<int>(0));
+	visibility_point(visibility, 0);
+	for(int i = 0;i<visibility.size();++i) {
+		cout << "row: " << i << endl;
+		print_vector(visibility[i]);
+	}
+
+	/*pr.n = 5;
 	status_segment sg1, sg2, sg3,sg4;
 	sg1.p=0;
 	sg1.p1=1;
@@ -478,11 +596,11 @@ int main() {
 	stat.insert(sg3);
 	for (set<status_segment>::iterator it = stat.begin() ; it != stat.end(); ++it) {
 	    cout << ' ' << (*it).p1<< ' ' << (*it).p2<<endl;
-	}
+	}*/
 
-	vector<edge> all_edges_sorted = find_all_edges();
+	//vector<edge> all_edges_sorted = find_all_edges();
 
-	greedy_tspanner(tspanner,all_edges_sorted);
+	//greedy_tspanner(tspanner,all_edges_sorted);
 
 
 }
