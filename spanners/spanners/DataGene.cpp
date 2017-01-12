@@ -25,6 +25,7 @@ int width = 100;// size of the bouding box for obstacle
 int n = 0; // the number of vertices
 int n_obs = 0;// the number of vertices for the obstacle
 float temp = 0;
+bool Inside = 0;
 
 
 float calcu_angle(int x1, int y1, int x_center, int y_center){
@@ -142,6 +143,33 @@ int main(int argc, const char * argv[]) {
         }
         cout << x_coord[i] << " " << y_coord[i] << "\n";
     }
+     
+     
+     void precalc_values() {
+     
+     int   i, j=polyCorners-1 ;
+     
+     for(i=0; i<polyCorners; i++) {
+     if(polyY[j]==polyY[i]) {
+     constant[i]=polyX[i];
+     multiple[i]=0; }
+     else {
+     constant[i]=polyX[i]-(polyY[i]*polyX[j])/(polyY[j]-polyY[i])+(polyY[i]*polyX[i])/(polyY[j]-polyY[i]);
+     multiple[i]=(polyX[j]-polyX[i])/(polyY[j]-polyY[i]); }
+     j=i; }}
+     
+     bool pointInPolygon() {
+     
+     int   i, j=polyCorners-1 ;
+     bool  oddNodes=NO      ;
+     
+     for (i=0; i<polyCorners; i++) {
+     if ((polyY[i]< y && polyY[j]>=y
+     ||   polyY[j]< y && polyY[i]>=y)) {
+     oddNodes^=(y*multiple[i]+constant[i]<x); }
+     j=i; }
+     
+     return oddNodes; }
      */
     
     //or we could be more specific, we remove all points within the obstacle
@@ -150,7 +178,54 @@ int main(int argc, const char * argv[]) {
     for (int i = 0; i <= n_obs; i++) {
         cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
     }
-
+    
+    //raycasting algorithm
+    int constant[n_obs];
+    float multiple[n_obs];
+    int relay = n_obs;
+    int Inside[n];
+    for (int i=0;i<n;i++) {
+        Inside[i]=0;
+    }
+    //calculte for each edge, the line equation
+    for (int i=0; i<n_obs;i++) {
+        if(obs_y_polygon[relay] == obs_y_polygon[i]) {
+            constant[i] = obs_x_polygon[i];
+            multiple[i] = 0;
+        }
+        else {
+            constant[i] = obs_x_polygon[i]-(obs_y_polygon[i]*obs_x_polygon[relay])/(obs_y_polygon[relay]-obs_y_polygon[i])+(obs_y_polygon[i]*obs_x_polygon[i])/(obs_y_polygon[relay]-obs_y_polygon[i]);
+            multiple[i] = (float)(obs_x_polygon[relay]-obs_x_polygon[i])/(obs_y_polygon[relay]-obs_y_polygon[i]);
+            relay = i;
+        }
+        cout << multiple[i] << "\n";
+    }
+    //calculate the x-coordinate and compare with the point
+    for (int temp=0; temp<n; temp++) {
+        cout << x_coord[temp] << " " << y_coord[temp] << "   ";
+        int   j = n_obs;
+        for (int i=0; i<n_obs; i++) {
+            if (((obs_y_polygon[i]< y_coord[temp] && obs_y_polygon[j]>=y_coord[temp]) || (obs_y_polygon[j]< y_coord[temp] && obs_y_coord[i]>=y_coord[temp]))) {
+                Inside[temp]^=(y_coord[temp]*multiple[i]+constant[i]<(float)(1.00*x_coord[temp]));
+            }
+            j=i;
+        }
+        cout << Inside[temp] << "\n";
+    }
+    /*
+    bool pointInPolygon(int x, int y) {
+        int   i, j=n_obs-1 ;
+        for (i=0; i<n_obs; i++) {
+            if ((obs_y_coord[i]< y && obs_y_coord[j]>=y   ||  obs_y_coord[j]< y && obs_y_coord[i]>=y)) {
+                Inside^=(y*multiple[i]+constant[i]<x);
+            }
+            j=i;
+        }
+        return Inside;
+    }
+     */
+    
+    
     cout << n_obs << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
     return 0;
 }
