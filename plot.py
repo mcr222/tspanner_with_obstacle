@@ -20,10 +20,16 @@ with open('output.txt') as f:
     print obst_vert
              
     visibility = []
-    for line in f: # read rest of lines
+    for i in range(n+nobs):
+        line=next(f)
         visibility.append([int(x) for x in line.split()])
         
     print visibility
+    
+    print "dilation: " + next(f)
+    print "size: "+ next(f)
+    print "weight: " + next(f)
+    print "execution time: " + next(f)
 
 def getpoint(i):
     if(i<n):
@@ -40,13 +46,15 @@ for i in range(1,len(obst_vert)):
     p1 = getpoint(n+i-1)
     p2 = getpoint(n+i)
     plt.plot([p1[0], p2[0]], [p1[1], p2[1]],color='r')
-    
+
+
 for i in range(len(visibility)):
     adj = visibility[i]
     p1 = getpoint(i);
     for j in range(len(adj)):
         p2 = getpoint(adj[j])
-        plt.plot([p1[0], p2[0]], [p1[1], p2[1]],color='b')
+        plt.plot([p1[0], p2[0]], [p1[1], p2[1]])
+        
 plt.show()
 
 

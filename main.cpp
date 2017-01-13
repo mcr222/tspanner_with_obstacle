@@ -8,11 +8,12 @@
 #include <algorithm>
 #include <set>
 #include <limits>
+#include <time.h>
 
 using namespace std;
 
 typedef pair<double,double> coord;
-typedef vector<vector<int>> graph;
+typedef vector<set<int>> graph;
 struct problem {
 	int n;
 	int nobs;
@@ -117,7 +118,7 @@ double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<in
 	pq.push(make_pair(0,source));
 	distances[source]=0;
 	pair<int,int> prior_point;
-	vector<int> neighbors;
+	set<int> neighbors;
 	double alt_dist;
 	while(!pq.empty()){
 		prior_point = pq.top();
@@ -134,12 +135,12 @@ double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<in
 		neighbors = tspanner[prior_point.second];
 		if(!visited[prior_point.second]) {
 			visited[prior_point.second] = true;
-			for(int i=0;i<neighbors.size();++i) {
-				alt_dist = distances[prior_point.second]+euclidean_distance(getpoint(prior_point.second),getpoint(neighbors[i]));
-				if(distances[neighbors[i]]==-1 || alt_dist<distances[neighbors[i]]) {
-					distances[neighbors[i]] = alt_dist;
-					previous[neighbors[i]] = prior_point.second;
-					pq.push(make_pair(alt_dist,neighbors[i]));
+			for(set<int>::iterator it=neighbors.begin();it!=neighbors.end();++it) {
+				alt_dist = distances[prior_point.second]+euclidean_distance(getpoint(prior_point.second),getpoint(*it));
+				if(distances[*it]==-1 || alt_dist<distances[*it]) {
+					distances[*it] = alt_dist;
+					previous[*it] = prior_point.second;
+					pq.push(make_pair(alt_dist,*it));
 				}
 			}
 		}
@@ -150,8 +151,8 @@ double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<in
 
 //tested
 void insert_edge(graph& tspanner, int p1, int p2) {
-	tspanner[p1].push_back(p2);
-	tspanner[p2].push_back(p1);
+	tspanner[p1].insert(p2);
+	tspanner[p2].insert(p1);
 }
 
 int orientation_3_points(coord p1,coord p2, coord p3) {
@@ -453,7 +454,7 @@ void insert_obstacle_edges(graph& visibility) {
 }
 
 graph visibility_graph(int p1, int p2) {
-	graph visibility(pr.n+pr.nobs, vector<int>(0));
+	graph visibility(pr.n+pr.nobs, set<int>());
 	insert_obstacle_edges(visibility);
 	visibility_point(visibility,p1);
 	visibility_point(visibility,p2);
@@ -510,7 +511,9 @@ void greedy_tspanner(graph& tspanner, vector<edge> edges){
 	for(int i=0;i<edges.size();++i) {
 		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2,unused);
 		//cout << dist/euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2)) << endl;
-		if(dist == -1 || dist>pr.t*euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2))) {
+		//dist>pr.t*euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2))
+		if(dist == -1 || dist>pr.t*edges[i].dist) {
+			//TODO: inserts twice some edges
 			if(edges[i].straight_line) {
 				insert_edge(tspanner, edges[i].p1, edges[i].p2);
 			} else {
@@ -523,7 +526,14 @@ void greedy_tspanner(graph& tspanner, vector<edge> edges){
 	}
 }
 
-void writeFile(char filename[], graph& graph) {
+struct result {
+	double dilation;
+	int size;
+	double weight;
+	double execution_time;
+};
+
+void writeFile(char filename[], graph& graph, result& res) {
 	cout << "Writting output"<< endl;
     ifstream file(filename);
     string str;
@@ -534,31 +544,67 @@ void writeFile(char filename[], graph& graph) {
     }
 
     for(int i=0;i<graph.size();++i) {
-    	for(int j=0;j<graph[i].size();++j){
-    		outputFile << " " << graph[i][j];
+    	for(set<int>::iterator it=graph[i].begin();it!=graph[i].end();++it){
+    		outputFile << " " << *it;
     	}
     	outputFile << endl;
     }
 
+    outputFile << res.dilation << endl;
+    outputFile << res.size << endl;
+    outputFile << res.weight << endl;
+    outputFile << res.execution_time << endl;
 
+
+}
+
+result computeResultParameters(graph& tspanner, vector<edge>& edges) {
+	result res;
+
+	double dist,dilation_max=0,dil;
+	vector<int> unused;
+	for(int i=0;i<edges.size();++i) {
+		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2,unused);
+		dil=dist/edges[i].dist;
+		if(dil>dilation_max) {
+			dilation_max=dil;
+		}
+		//cout << edges[i].p1 << " " << edges[i].p2 << " " << dil << endl;
+	}
+	res.dilation = dilation_max;
+
+	int size=0;
+	double weight=0;
+	for(int i=0;i<tspanner.size();++i) {
+		for(set<int>::iterator it=tspanner[i].begin();it!=tspanner[i].end();++it) {
+			++size;
+			weight += euclidean_distance(getpoint(*it),getpoint(i));
+		}
+	}
+
+	res.size = size/(double)2;
+	res.weight = weight/2;
+
+	return res;
 }
 
 int main() {
 	char filename[] = "Data_examples/geometricspanners.txt";
 	readFile(filename);
-	graph tspanner(pr.n+pr.nobs, vector<int>(0));
+	graph tspanner(pr.n+pr.nobs, set<int>());
 
 
+	clock_t tStart = clock();
 	vector<edge> all_edges_sorted = find_all_edges();
 
-	/*cout << "all edges: " << endl;
-	for(vector<edge>::iterator it = all_edges_sorted.begin();it!=all_edges_sorted.end();++it) {
-		cout <<(*it).p1 << " " << (*it).p2 << " " << (*it).straight_line << endl;
-	}*/
-
 	greedy_tspanner(tspanner,all_edges_sorted);
+	double execution_timer = (clock()-tStart)/(double)(CLOCKS_PER_SEC/1000);
 
-	writeFile(filename, tspanner);
+	result res = computeResultParameters(tspanner,all_edges_sorted);
+	res.execution_time = execution_timer;
+	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
+
+	writeFile(filename, tspanner, res);
 
 	/*graph tspanner(4, vector<int>(0));
 //	Example of dijkstra distance
