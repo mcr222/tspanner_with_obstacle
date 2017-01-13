@@ -300,6 +300,11 @@ vector<coord> getFarthestPoints(vector<coord> points){
 	return farthestPoints;
 }
 
+bool checkLeaves(Quadtree* cell1, Quadtree* cell2){
+	if(cell1 == NULL) return false;
+	return checkLeaves(cell1->ne,cell2) && checkLeaves(cell1->nw,cell2) && checkLeaves(cell1->se,cell2) && checkLeaves(cell1->sw,cell2);
+}
+
 void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 	/* boundary stored as..
 	 * cell1.boundary.at(0) = lb
@@ -315,7 +320,6 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 
 		vector<coord> cell1Points = getContainedPoints(cell1);
 		vector<coord> cell2Points = getContainedPoints(cell2);
-
 
 		farthest1 = getFarthestPoints(cell1Points);
 		farthest2 = getFarthestPoints(cell2Points);
@@ -336,7 +340,7 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 		cout<< "epsilon * dist"<< epsilon * dist<<endl;*/
 
 		// if cell2 is a leaf of cell1, return;
-		if (cell2 == cell1->ne || cell2 == cell1->nw || cell2 == cell1->se || cell2 == cell1->sw){
+		if (cell1Points.size()==0 || cell2Points.size()==0 || checkLeaves(cell1,cell2)){
 			return;
 		}
 		else if(cellDiameter1 < epsilon * dist ){
@@ -345,12 +349,12 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 		}
 		else {
 			if(cellDiameter1 < cellDiameter2){
-			// Swap the cells
-			Quadtree* temp;
-			temp = cell1;
-			cell1 = cell2;
-			cell2 = temp;
-		}
+				// Swap the cells
+				Quadtree* temp;
+				temp = cell1;
+				cell1 = cell2;
+				cell2 = temp;
+			}
 		if(!(cell1->ne == NULL && cell1->nw == NULL && cell1->se == NULL && cell1->sw == NULL)){
 			if(cell1->ne !=NULL){
 				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->ne,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->ne)) == checkDuplicate.end()){
