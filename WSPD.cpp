@@ -302,7 +302,8 @@ vector<coord> getFarthestPoints(vector<coord> points){
 
 bool checkLeaves(Quadtree* cell1, Quadtree* cell2){
 	if(cell1 == NULL) return false;
-	return checkLeaves(cell1->ne,cell2) && checkLeaves(cell1->nw,cell2) && checkLeaves(cell1->se,cell2) && checkLeaves(cell1->sw,cell2);
+	//return checkLeaves(cell1->ne,cell2) && checkLeaves(cell1->nw,cell2) && checkLeaves(cell1->se,cell2) && checkLeaves(cell1->sw,cell2);
+	return cell2 == cell1->ne || cell2 == cell1->nw || cell2 == cell1->se || cell2== cell1->sw ;
 }
 
 void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
@@ -330,20 +331,20 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 		double areaCell1 = euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(1))*euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(3));
 		double areaCell2 = euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(1))*euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(3));
 
-		/*cout<<"Diameters calculated"<<endl;
+		cout<<"Diameters calculated"<<endl;
 		cout<<cellDiameter1<<":cell1Diameter"<<endl;
 		cout<<cellDiameter2<<":cell2Diameter"<<endl;
-		cout<<"***************************"<<endl;*/
+
 
 		double dist = euclidean_distance(getMidPoint(farthest1.at(0),farthest1.at(1)), getMidPoint(farthest2.at(0),farthest2.at(1)));
-		/*cout<<"distance"<<dist<<endl;
-		cout<< "epsilon * dist"<< epsilon * dist<<endl;*/
+		cout<<"distance"<<dist<<endl;
+		cout<< "epsilon * dist"<< epsilon * dist<<endl;
 
 		// if cell2 is a leaf of cell1, return;
 		if (cell1Points.size()==0 || cell2Points.size()==0 || checkLeaves(cell1,cell2)){
 			return;
 		}
-		else if(cellDiameter1 < epsilon * dist ){
+		else if(dist >= epsilon * (cellDiameter1/2) ){
 			//The two cell's points are 1/epsilon-separated
 			pair_queue.push(make_pair(cell1->containedPoints,cell2->containedPoints));
 		}
