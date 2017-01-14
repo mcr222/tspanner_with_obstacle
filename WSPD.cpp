@@ -7,6 +7,7 @@
 #include <math.h>
 #include <queue>
 #include <algorithm>
+#include <list>
 
 using namespace std;
 
@@ -88,7 +89,7 @@ Quadtree::~Quadtree()
 
 
 
-queue<pair<vector<vector<coord>>,vector<vector<coord>>>> pair_queue; // queue storing the well-separated pairs
+vector<pair<vector<vector<coord>>,vector<vector<coord>>>> pair_queue; // queue storing the well-separated pairs
 vector<pair<Quadtree*,Quadtree*>> checkDuplicate; // vector storing cells for which wspd is already found
 
 problem pr;
@@ -522,7 +523,7 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 			// To remove such pairs.
 			//if(diff.size() <=0 )
 			 if(!equalLeaves)
-				pair_queue.push(make_pair(cell1->containedPoints,cell2->containedPoints));
+				pair_queue.push_back(make_pair(cell1->containedPoints,cell2->containedPoints));
 		}
 		else{
 		if(areaCell1 < areaCell2){
@@ -580,9 +581,9 @@ void writeFile(char filename[]) {
     cout<< "Number of well-seperated paires created = "<<pair_queue.size()<<endl;
     //outputFile << pair_queue.size() <<endl;
     pair<vector<vector<coord>>,vector<vector<coord>>> ws_pairs;
-    while(!pair_queue.empty()){
-    		ws_pairs = pair_queue.front();
-    		pair_queue.pop();
+    for(size_t i = 0; i<pair_queue.size();i++){
+    		ws_pairs = pair_queue.at(i);
+    		//pair_queue.pop();
     		cout<<"Sizes:"<<ws_pairs.first.size()<<","<<ws_pairs.second.size()<<endl;
     		//outputFile << ws_pairs.first.size() << endl;
     		for(size_t i =0;i<ws_pairs.first.size();i++){
@@ -606,6 +607,17 @@ void writeFile(char filename[]) {
     		cout<<endl;
     	}
 }
+
+vector<coord> getAllPoints(vector<vector<coord>> points){
+	vector<coord> allPoints;
+	for(size_t i = 0;i< points.size();i++){
+		for(size_t j=0;j<points.at(i).size();j++){
+			allPoints.push_back(points.at(i).at(j));
+		}
+	}
+	return allPoints;
+}
+
 
 void printQuadTree(Quadtree* quadTree){
 	if(quadTree!=NULL){
@@ -646,6 +658,38 @@ int main() {
 	cout<<epsilon <<": epsilon"<<endl;
 	constructWSPD(&quadtree,&quadtree,epsilon);
 
+
 	writeFile(filename);
+
+	vector<pair<int,coord>> allPointList;
+	map<coord, int> point_map;
+	for(size_t i =0;i<pr.points.size();i++){
+		point_map[pr.points.at(i)] = i;
+	}
+	for(size_t i =0;i<pr.obstacle_vert.size();i++){
+		point_map[pr.points.at(i)] = i;
+	}
+
+	cout<<"list/map gen"<<endl;
+
+	cout<< "Number of well-seperated paires created = "<<pair_queue.size()<<endl;
+	vector<pair<int,int>> pairs;
+	for(size_t i=0;i<pair_queue.size();i++){
+		vector<coord> a = getAllPoints(pair_queue.at(i).first);
+		vector<coord> b = getAllPoints(pair_queue.at(i).second);
+
+		int rand_a = std::rand() % ( a.size());
+		int rand_b = std::rand() % ( b.size());
+
+		int key_a = point_map[a.at(rand_a)];
+		int key_b = point_map[b.at(rand_b)];
+		pairs.push_back(make_pair(key_a,key_b));
+	}
+
+	for(size_t k =0;k<pairs.size();k++){
+		cout<<pairs.at(k).first<<","<<pairs.at(k).second<<endl;
+	}
+
+
 
 }
