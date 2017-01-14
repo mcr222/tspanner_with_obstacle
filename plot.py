@@ -37,15 +37,15 @@ def getpoint(i):
     else:
         return obst_vert[i-n];
 
-plt.scatter(*zip(*points))
-plt.scatter(*zip(*obst_vert),color='r')
+plt.scatter(*zip(*points),s=100)
+plt.scatter(*zip(*obst_vert),color='r',s=100)
 p1 = getpoint(n)
 p2 = getpoint(n+nobs-1)
-plt.plot([p1[0], p2[0]], [p1[1], p2[1]],color='r')
+plt.plot([p1[0], p2[0]], [p1[1], p2[1]],color='r', linewidth=3.0)
 for i in range(1,len(obst_vert)):
     p1 = getpoint(n+i-1)
     p2 = getpoint(n+i)
-    plt.plot([p1[0], p2[0]], [p1[1], p2[1]],color='r')
+    plt.plot([p1[0], p2[0]], [p1[1], p2[1]],color='r', linewidth=3.0)
 
 
 for i in range(len(visibility)):
@@ -53,7 +53,7 @@ for i in range(len(visibility)):
     p1 = getpoint(i);
     for j in range(len(adj)):
         p2 = getpoint(adj[j])
-        plt.plot([p1[0], p2[0]], [p1[1], p2[1]])
+        plt.plot([p1[0], p2[0]], [p1[1], p2[1]],color='b',  linewidth=3.0)
         
 plt.show()
 
