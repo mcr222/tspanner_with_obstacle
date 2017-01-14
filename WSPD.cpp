@@ -10,7 +10,7 @@
 
 using namespace std;
 
-typedef pair<int,int> coord;
+typedef pair<double,double> coord;
 typedef vector<vector<int>> graph;
 struct problem {
 	int n;
@@ -137,7 +137,7 @@ coord getMidPoint(coord p1, coord p2) {
 
 struct compare_x
 {
-    bool operator() (pair<int,int> &p1, pair<int,int> &p2)
+    bool operator() (pair<double,double> &p1, pair<double,double> &p2)
     {
         return (p1.first < p2.first);
     }
@@ -161,13 +161,7 @@ vector<coord> sort_y(vector<coord> points){
 	return points;
 }
 
-map<string, vector<coord>> split_points(vector<coord> points){
-
-	vector<coord> split_ne;
-	vector<coord> split_nw;
-	vector<coord> split_se;
-	vector<coord> split_sw;
-	map < string, vector<coord>> splits;
+vector<coord> getHyperRectangle(vector<coord> points){
 
 	// constructs hyper rectangle and returns points splitted in two vectors.
 	vector<coord>  x_sorted_points = sort_x(points);
@@ -189,38 +183,165 @@ map<string, vector<coord>> split_points(vector<coord> points){
 	coord intersection = make_pair((endpoint_lb.first + endpoint_rt.first)/2 ,(endpoint_lb.second + endpoint_rt.second)/2);
 	hyper_rectangle.push_back(intersection);
 
-	splits["hyper_rectangle"] = hyper_rectangle;
+	return hyper_rectangle;
+}
 
 
-	// split points into 4 sets based on these 2 sides.
-	double split_at_x;
-	double split_at_y;
+map<string, vector<coord>> split_points(vector<coord> points, vector<coord> boundary){
+	map < string, vector<coord>> splits;
+	vector<coord> split_ne;
+	vector<coord> split_nw;
+	vector<coord> split_se;
+	vector<coord> split_sw;
 
-	split_at_x = (double)(endpoint_lb.first + endpoint_rb.first)/2;
-	split_at_y = (double)(endpoint_lb.second + endpoint_lt.second)/2;
+	vector<coord> boundary_ne;
+	vector<coord> boundary_nw;
+	vector<coord> boundary_se;
+	vector<coord> boundary_sw;
 
-	size_t i;
-	for(i =0 ; i < points.size(); i++){
-		if(points.at(i).first > split_at_x && points.at(i).second > split_at_y)
-			split_ne.push_back(points.at(i));
-		else if (points.at(i).first <= split_at_x && points.at(i).second > split_at_y)
-			split_nw.push_back(points.at(i));
-		else if (points.at(i).first <= split_at_x && points.at(i).second <= split_at_y)
-			split_sw.push_back(points.at(i));
-		else if (points.at(i).first > split_at_x && points.at(i).second <= split_at_y)
-			split_se.push_back(points.at(i));
-		}
+	coord lb;
+	coord lt;
+	coord rt;
+	coord rb;
+	coord intersection;
 
-	splits["nw"]= split_nw;
-	splits["ne"]= split_ne;
-	splits["sw"]= split_sw;
-	splits["se"]= split_se;
+	if(points.size()<=1){
+		splits["single"] = points;
+	}
 
+	else{
+		// split points into 4 sets based on these 2 sides.
+			double split_at_x;
+			double split_at_y;
+
+			split_at_x = boundary.at(4).first;
+			split_at_y = boundary.at(4).second;
+
+			/*split_at_x = (boundary.at(3).first - boundary.at(0).first )/2;
+			split_at_y = (boundary.at(1).second - boundary.at(0).second)/2;
+
+			cout<<"Split_x:"<< boundary.at(3).first<<"-"<< boundary.at(0).first<<"/2 ="<< split_at_x<<endl;
+			cout<<"Split_y:"<< boundary.at(1).second <<"-"<< boundary.at(0).second<<"/2="<<split_at_y<<endl;*/
+			//cout<<"("<<boundary.at(4).first<<","<<boundary.at(4).second<<")"<<"intersection"<<endl;
+
+			if(split_at_x!=0 && split_at_y!=0){
+				size_t i;
+				for(i =0 ; i < points.size(); i++){
+					if(points.at(i).first > split_at_x && points.at(i).second > split_at_y)
+						split_ne.push_back(points.at(i));
+					else if (points.at(i).first <= split_at_x && points.at(i).second > split_at_y)
+						split_nw.push_back(points.at(i));
+					else if (points.at(i).first <= split_at_x && points.at(i).second <= split_at_y)
+						split_sw.push_back(points.at(i));
+					else
+						split_se.push_back(points.at(i));
+					}
+				//cout<<"set"<<endl;
+
+				splits["nw"]= split_nw;
+				splits["ne"]= split_ne;
+				splits["sw"]= split_sw;
+				splits["se"]= split_se;
+
+
+
+				// ne boundary
+				if(split_ne.size()>0){
+					lb = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second+split_at_y);
+					lt = make_pair(boundary.at(1).first+split_at_x, boundary.at(1).second);
+					rt = boundary.at(2);
+					rb = make_pair(boundary.at(3).first,boundary.at(3).second+split_at_y);
+					intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
+					boundary_ne.push_back(lb);
+					boundary_ne.push_back(lt);
+					boundary_ne.push_back(rt);
+					boundary_ne.push_back(rb);
+					boundary_ne.push_back(intersection);
+
+					splits["ne_boundary"] = boundary_ne;
+					/*cout<<"NE_BOUNDARY"<<endl;
+					for(size_t i =0;i<boundary_ne.size();i++){
+							cout<<"("<<boundary_ne.at(i).first<<","<<boundary_ne.at(i).second<<"),";
+						}
+					cout<<endl;*/
+				}
+
+				// nw boundary
+				if(split_nw.size() >0 ){
+					lb = make_pair(boundary.at(0).first,boundary.at(0).second+split_at_y);
+					lt = boundary.at(1);
+					rt = make_pair(boundary.at(2).first-split_at_x, boundary.at(2).second);
+					rb = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second+split_at_y);
+					intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
+					boundary_nw.push_back(lb);
+					boundary_nw.push_back(lt);
+					boundary_nw.push_back(rt);
+					boundary_nw.push_back(rb);
+					boundary_nw.push_back(intersection);
+
+					splits["nw_boundary"] = boundary_nw;
+					/*cout<<"NW_BOUNDARY"<<endl;
+					for(size_t i =0;i<boundary_ne.size();i++){
+							cout<<"("<<boundary_nw.at(i).first<<","<<boundary_nw.at(i).second<<"),";
+						}
+					cout<<endl;*/
+				}
+
+				// sw boundary
+				if(split_sw.size()>0){
+					lb = boundary.at(0);
+					lt = make_pair(boundary.at(0).first, boundary.at(0).second+split_at_y);
+					rt = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second+split_at_y);
+					rb = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second);
+					intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
+					boundary_sw.push_back(lb);
+					boundary_sw.push_back(lt);
+					boundary_sw.push_back(rt);
+					boundary_sw.push_back(rb);
+					boundary_sw.push_back(intersection);
+
+					splits["sw_boundary"] = boundary_sw;
+					/*cout<<"	SW_BOUNDARY"<<endl;
+					for(size_t i =0;i<boundary_sw.size();i++){
+							cout<<"("<<boundary_sw.at(i).first<<","<<boundary_sw.at(i).second<<"),";
+						}
+					cout<<endl;*/
+				}
+
+				// se boundary
+				if(split_se.size() > 0){
+					lb = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second);
+					lt = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second+split_at_y);
+					rt = make_pair(boundary.at(3).first,boundary.at(3).second+split_at_y);
+					rb = boundary.at(3);
+					intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
+					boundary_se.push_back(lb);
+					boundary_se.push_back(lt);
+					boundary_se.push_back(rt);
+					boundary_se.push_back(rb);
+					boundary_se.push_back(intersection);
+
+					splits["se_boundary"] = boundary_se;
+					/*cout<<"SE_BOUNDARY"<<endl;
+					for(size_t i =0;i<boundary_se.size();i++){
+							cout<<"("<<boundary_se.at(i).first<<","<<boundary_se.at(i).second<<"),";
+						}
+					cout<<endl;*/
+				}
+			}
+
+	}
 
 	return splits;
 }
 
 void constructQuadTree(Quadtree* quadtree,vector<coord> &points){
+
+	/*cout<<"BOUNDARY"<<endl;
+	for(size_t i =0;i<quadtree->boundary.size();i++){
+			cout<<"("<<quadtree->boundary.at(i).first<<","<<quadtree->boundary.at(i).second<<"),";
+		}
+	cout<<endl;*/
 
 	if(points.size()== 1){
 		vector<vector<coord>> singlePointSet;
@@ -237,7 +358,7 @@ void constructQuadTree(Quadtree* quadtree,vector<coord> &points){
 	else{
 		// split_points constructs hyper rectangle and splits the points into two vectors
 		map < string, vector<coord>> splits;
-		splits = split_points(points);
+		splits = split_points(points, quadtree->boundary);
 		vector<vector<coord>> pointSets;
 
 		if(splits["ne"].size()!=0)
@@ -250,33 +371,30 @@ void constructQuadTree(Quadtree* quadtree,vector<coord> &points){
 			pointSets.push_back(splits["sw"]);
 
 		quadtree->containedPoints = pointSets ;
-		quadtree->boundary = splits["hyper_rectangle"];
 
-		map < string, vector<coord>> splits_children;
-		if(splits["ne"].size()!=0){
-			quadtree->ne=  new Quadtree(splits["ne"]);
-			splits_children = split_points(splits["ne"]);
-			quadtree->ne->boundary = splits_children["hyper_rectangle"];
+
+
+		if(splits["ne"].size()!=0 && splits.count("ne_boundary")==1){
+			vector<coord> outerBoundary = getHyperRectangle(splits["ne"]);
+			quadtree->ne=  new Quadtree(outerBoundary);
 			constructQuadTree(quadtree->ne, splits["ne"]);
 		}
-		if(splits["nw"].size()!=0){
-			quadtree->nw=  new Quadtree(splits["nw"]);
-			splits_children = split_points(splits["nw"]);
-			quadtree->nw->boundary = splits_children["hyper_rectangle"];
+		if(splits["nw"].size()!=0 && splits.count("nw_boundary")==1){
+			vector<coord> outerBoundary = getHyperRectangle(splits["nw"]);
+			quadtree->nw=  new Quadtree(outerBoundary);
 			constructQuadTree(quadtree->nw, splits["nw"]);
 		}
-		if(splits["se"].size()!=0){
-			quadtree->se= new Quadtree(splits["se"]);
-			splits_children = split_points(splits["se"]);
-			quadtree->se->boundary = splits_children["hyper_rectangle"];
+		if(splits["se"].size()!=0 && splits.count("se_boundary")==1){
+			vector<coord> outerBoundary = getHyperRectangle(splits["se"]);
+			quadtree->se= new Quadtree(outerBoundary);
 			constructQuadTree(quadtree->se, splits["se"]);
 		}
-		if(splits["sw"].size()!=0){
-			quadtree->sw= new Quadtree(splits["sw"]);
-			splits_children = split_points(splits["sw"]);
-			quadtree->sw->boundary = splits_children["hyper_rectangle"];
+		if(splits["sw"].size()!=0 && splits.count("sw_boundary")==1){
+			vector<coord> outerBoundary = getHyperRectangle(splits["sw"]);
+			quadtree->sw= new Quadtree(outerBoundary);
 			constructQuadTree(quadtree->sw, splits["sw"]);
 		}
+
 	}
 
 }
@@ -299,6 +417,21 @@ vector<coord> getFarthestPoints(vector<coord> points){
 	farthestPoints.push_back(points.back());
 	return farthestPoints;
 }
+
+void getTotalPoints(Quadtree* quadTree){
+	if(quadTree!=NULL){
+		int total=0;
+		for (size_t i=0;i<quadTree->containedPoints.size();i++){
+			total += quadTree->containedPoints.at(i).size();
+			cout<<"(";
+			for(size_t j=0;j<quadTree->containedPoints.at(i).size();j++){
+				cout<<"("<<quadTree->containedPoints.at(i).at(j).first<<","<<quadTree->containedPoints.at(i).at(j).second<<")";
+			}
+			cout<<"),";
+		}
+		cout<<"Total points:"<<total<<endl;
+	}
+	}
 
 bool checkLeaves(Quadtree* cell1, Quadtree* cell2){
 	if(cell1 == NULL) return false;
@@ -342,29 +475,56 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 		double cellDiameter1 = euclidean_distance(farthest1.at(0),farthest1.at(1));
 		double cellDiameter2 = euclidean_distance(farthest2.at(0),farthest2.at(1));
 
+		double largerDiameter = cellDiameter1 >cellDiameter2 ? cellDiameter1 : cellDiameter2;
+
 		double areaCell1 = euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(1))*euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(3));
 		double areaCell2 = euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(1))*euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(3));
 
-		/*cout<<"Diameters calculated"<<endl;
-		cout<<cellDiameter1<<":cell1Diameter"<<endl;
-		cout<<cellDiameter2<<":cell2Diameter"<<endl;*/
-
 
 		double dist = euclidean_distance(getMidPoint(farthest1.at(0),farthest1.at(1)), getMidPoint(farthest2.at(0),farthest2.at(1)));
-		/*cout<<"distance"<<dist<<endl;
-		cout<< "epsilon * dist"<< epsilon * dist<<endl;*/
+
 
 		// if cell2 is a leaf of cell1, return;
 		if (cell1Points.size()==0 || cell2Points.size()==0 || checkLeaves(cell1,cell2)){
 			return;
 		}
-		 if(dist >= epsilon * (cellDiameter1/2) ){
+		else if(dist >= epsilon * (largerDiameter/2) ){
+			coord cen;
+			/*cout<<"Diameters calculated"<<endl;
+			cout<<cellDiameter1<<":cell1Diameter"<<endl;
+			cout<<cellDiameter2<<":cell2Diameter"<<endl;
+			cout<<largerDiameter<<":the larger one"<<endl;
+			cen = getMidPoint(farthest1.at(0),farthest1.at(1));
+			cout<<"center1...("<<cen.first<<","<<cen.second<<")"<<endl;
+			cen = getMidPoint(farthest2.at(0),farthest2.at(1));
+			cout<<"center2...("<<cen.first<<","<<cen.second<<")"<<endl;
+			cout<<"distance........"<<dist<<endl;
+			 cout<< "epsilon * radius......"<< epsilon * largerDiameter/2 <<endl;
+			 cout<<"...cell1"<<endl;
+			 getTotalPoints(cell1);
+			 cout<<".....cell2"<<endl;*/
+			 getTotalPoints(cell2);
+
+			 // If leaf cells, and equal, remove them
+			 bool equalLeaves = false;
+			 if(cell1->containedPoints.size() == 1 && cell2->containedPoints.size()==1){
+				 if (cell1->containedPoints.at(0).size() == 1 && cell2->containedPoints.at(0).size()==1){
+					 if( cell1->containedPoints.at(0).at(0).first == cell2->containedPoints.at(0).at(0).first && cell1->containedPoints.at(0).at(0).second == cell2->containedPoints.at(0).at(0).second){
+						 equalLeaves = true;
+					 }
+				 }
+			 }
+
+
+
 			//The two cell's points are 1/epsilon-separated
-			vector<coord> diff = instersection(cell1Points, cell2Points);
+			//vector<coord> diff = instersection(cell1Points, cell2Points);
 			// To remove such pairs.
-			if(diff.size() <=0 )
+			//if(diff.size() <=0 )
+			 if(!equalLeaves)
 				pair_queue.push(make_pair(cell1->containedPoints,cell2->containedPoints));
 		}
+		else{
 		if(areaCell1 < areaCell2){
 				// Swap the cells
 				Quadtree* temp;
@@ -375,30 +535,31 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 		if(!(cell1->ne == NULL && cell1->nw == NULL && cell1->se == NULL && cell1->sw == NULL)){
 			if(cell1->ne !=NULL){
 				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->ne,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->ne)) == checkDuplicate.end()){
-					constructWSPD(cell1->ne,cell2,epsilon);
 					checkDuplicate.push_back(make_pair(cell1->ne,cell2));
+					constructWSPD(cell1->ne,cell2,epsilon);
 				}
 
 			}
 			if(cell1->nw !=NULL){
 				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->nw,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->nw)) == checkDuplicate.end()){
-					constructWSPD(cell1->nw,cell2,epsilon);
 					checkDuplicate.push_back(make_pair(cell1->nw,cell2));
+					constructWSPD(cell1->nw,cell2,epsilon);
 				}
 			}
 			if(cell1->se !=NULL){
 				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->se,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->se)) == checkDuplicate.end()){
-					constructWSPD(cell1->se,cell2,epsilon);
 					checkDuplicate.push_back(make_pair(cell1->se,cell2));
+					constructWSPD(cell1->se,cell2,epsilon);
 				}
 			}
 			if(cell1->sw !=NULL){
 				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->sw,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->sw)) == checkDuplicate.end()){
-					constructWSPD(cell1->sw,cell2,epsilon);
 					checkDuplicate.push_back(make_pair(cell1->sw,cell2));
+					constructWSPD(cell1->sw,cell2,epsilon);
 				}
 			}
 		}
+	}
 	}
 }
 
@@ -471,19 +632,18 @@ int main() {
 	char filename[] = "Data_examples/wspdTest.txt";
 	readFile(filename);
 	//graph tspanner(pr.n, vector<int>(0));
-	map < string, vector<coord>> splits;
-	splits = split_points(pr.points);
-	Quadtree quadtree = Quadtree(splits["hyper_rectangle"]);
+	vector<coord> outerBoundary = getHyperRectangle(pr.points);
+	Quadtree quadtree = Quadtree(outerBoundary);
 	constructQuadTree(&quadtree,pr.points);
 
-	printQuadTree(&quadtree);
+	//printQuadTree(&quadtree);
 
 	// assuming pr.t = 1.5
 	cout<<pr.t<<": stretch factor"<<endl;
-	//epsilon = (4*(pr.t +1))/( pr.t - 1 + 0.01);
-	epsilon = 1; //TODO DELETE
+	pr.t = 1.5;
+	epsilon = (4*(pr.t +1))/( pr.t - 1 + 0.01);
+	//epsilon = 1.5; //TODO DELETE
 	cout<<epsilon <<": epsilon"<<endl;
-
 	constructWSPD(&quadtree,&quadtree,epsilon);
 
 	writeFile(filename);
