@@ -383,7 +383,7 @@ void initiate_status(set<status_segment>& status, int p){
 
 void print_vector(vector<event> vec) {
 	for(int i=0;i<vec.size();++i) {
-		cout << " p "<<vec[i].p<< " angle: " <<vec[i].angle<< " p1: " <<vec[i].segment.p1<< " p2: " <<vec[i].segment.p2
+		cout << " p "<<vec[i].p << " angle: " <<vec[i].angle<< " p1: " <<vec[i].segment.p1<< " p2: " <<vec[i].segment.p2
 				<< " start: " <<vec[i].starting;
 		cout << endl;
 	}
@@ -441,24 +441,11 @@ void visibility_point(graph& visibility, int p) {
 	}
 
 	for(set<int>::iterator it=visible_points.begin();it!=visible_points.end();++it) {
-		insert_edge(visibility, p, *(it));
+		if(p!=*it) {
+			insert_edge(visibility, p, *it);
+		}
 	}
 
-}
-
-void insert_obstacle_edges(graph& visibility) {
-	insert_edge(visibility,pr.n+pr.nobs-1,pr.n);
-	for(int i=1;i<pr.nobs;++i) {
-		insert_edge(visibility,pr.n+i-1,pr.n+i);
-	}
-}
-
-graph visibility_graph(int p1, int p2) {
-	graph visibility(pr.n+pr.nobs, set<int>());
-	insert_obstacle_edges(visibility);
-	visibility_point(visibility,p1);
-	visibility_point(visibility,p2);
-	return visibility;
 }
 
 void print_vector(vector<int> vec) {
@@ -467,6 +454,71 @@ void print_vector(vector<int> vec) {
 	}
 	cout << endl;
 }
+
+bool diagonal_in_obstacle(int p1, int p2){
+	if(edges_intersect(getpoint(p1),getpoint(p2),getpoint(pr.n+pr.nobs-1),getpoint(pr.n))) {
+		return true;
+	}
+	for(int i=1;i<pr.nobs;++i) {
+		if(edges_intersect(getpoint(p1),getpoint(p2),getpoint(pr.n+i-1),getpoint(pr.n+i))) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool first = true;
+graph obstacle_visibility;
+
+graph insert_obstacle_edges() {
+	graph vis(pr.n+pr.nobs, set<int>());
+	if(first) {
+		graph visibility(pr.n+pr.nobs, set<int>());
+		insert_edge(visibility,pr.n+pr.nobs-1,pr.n);
+		for(int i=1;i<pr.nobs;++i) {
+			insert_edge(visibility,pr.n+i-1,pr.n+i);
+		}
+
+		//TODO: can this be improved with visibility graph??
+		//it would improve from nobs^3 to nobs^2*log(nobs)
+		for(int i=0;i<pr.nobs;++i) {
+			for(int j=0;j<pr.nobs;++j) {
+				if(i!=j && !diagonal_in_obstacle(pr.n+i,pr.n+j)) {
+					insert_edge(visibility,pr.n+i,pr.n+j);
+				}
+			}
+			//visibility_point(visibility,pr.n+i);
+		}
+
+		cout << "visibility obstacle" << endl;
+		for(int i = 0;i<visibility.size();++i) {
+			cout << "row: " << i << endl;
+			for(set<int>::iterator it=visibility[i].begin();it!=visibility[i].end();++it) {
+				cout << *it << " ";
+			}
+			cout << endl;
+		}
+		first = false;
+		obstacle_visibility = visibility;
+	}
+	if(!first){
+		for(int i = 0;i<obstacle_visibility.size();++i) {
+			for(set<int>::iterator it=obstacle_visibility[i].begin();it!=obstacle_visibility[i].end();++it) {
+				vis[i].insert(*it);
+			}
+		}
+	}
+	return vis;
+}
+
+graph visibility_graph(int p1, int p2) {
+	graph visibility;
+	visibility = insert_obstacle_edges();
+	visibility_point(visibility,p1);
+	visibility_point(visibility,p2);
+	return visibility;
+}
+
 
 vector<edge> find_all_edges() {
 	vector<edge> all_edges;
@@ -499,7 +551,6 @@ vector<edge> find_all_edges() {
 			all_edges.push_back(edg);
 		}
 	}
-	//TODO: check that ordered with smaller
 	sort(all_edges.begin(),all_edges.end(),less<edge>());
 	return all_edges;
 }
@@ -513,7 +564,6 @@ void greedy_tspanner(graph& tspanner, vector<edge> edges){
 		//cout << dist/euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2)) << endl;
 		//dist>pr.t*euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2))
 		if(dist == -1 || dist>pr.t*edges[i].dist) {
-			//TODO: inserts twice some edges
 			if(edges[i].straight_line) {
 				insert_edge(tspanner, edges[i].p1, edges[i].p2);
 			} else {
@@ -589,7 +639,7 @@ result computeResultParameters(graph& tspanner, vector<edge>& edges) {
 }
 
 int main() {
-	char filename[] = "Data_examples/geometricspanners.txt";
+	char filename[] = "Data_examples/ex2.txt";
 	readFile(filename);
 	graph tspanner(pr.n+pr.nobs, set<int>());
 
@@ -605,96 +655,6 @@ int main() {
 	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
 
 	writeFile(filename, tspanner, res);
-
-	/*graph tspanner(4, vector<int>(0));
-//	Example of dijkstra distance
-	vector<coord> points = {make_pair(0,0),make_pair(0,1),make_pair(1,1),make_pair(1,2)};
-	pr.points = points;
-	pr.n=4;
-    insert_edge(tspanner, 0, 1);
-    insert_edge(tspanner,1, 2);
-    insert_edge(tspanner,2,3);
-    //insert_edge(tspanner,1,2);
-
-    vector<int> path1;
-    cout << dijkstra_shortest_path(tspanner, 1,0,path1) << endl;
-    print_vector(path1);
-    cout << "aaaaaaaa" << endl;
-    vector<int> path2;
-    cout << dijkstra_shortest_path(tspanner, 2,0,path2) << endl;
-    print_vector(path2);
-    cout << "aaaaaaaa" << endl;
-    vector<int> path3;
-    cout << dijkstra_shortest_path(tspanner, 0,3,path3) << endl;
-    print_vector(path3);
-    cout << "aaaaaaaa" << endl;
-    vector<int> path4;
-    cout << dijkstra_shortest_path(tspanner, 2,3,path4) << endl;
-    print_vector(path4);
-    cout << "aaaaaaaa" << endl;
-    vector<int> path5;
-    cout << dijkstra_shortest_path(tspanner, 1,3,path5) << endl;
-    print_vector(path5);*/
-
-	/*cout << compute_angle(make_pair(0,1), make_pair(2,1), make_pair(3,4))*180/M_PI << endl;
-	cout << compute_angle(make_pair(2,1), make_pair(0,1), make_pair(3,4))*180/M_PI << endl;
-	cout << compute_angle(make_pair(0,1), make_pair(3,4), make_pair(2,1))*180/M_PI << endl;
-	cout << compute_angle(make_pair(2,1), make_pair(3,4), make_pair(0,1))*180/M_PI << endl;
-	cout << compute_angle(make_pair(3,4), make_pair(0,1), make_pair(2,1))*180/M_PI << endl;
-	cout << compute_angle(make_pair(3,4), make_pair(2,1), make_pair(0,1))*180/M_PI << endl;*/
-
-	/*cout << find_intersection_lines(make_pair(1.0,1.0), make_pair(2,2.0), make_pair(1,2.0), make_pair(2.0,1.0)).first << endl;
-	cout << find_intersection_lines(make_pair(1.0,1.0), make_pair(2,2.0), make_pair(1,2.0), make_pair(2.0,1.0)).second << endl;
-	cout << find_intersection_lines(make_pair(0.0,0.0), make_pair(4,4.0), make_pair(0,4), make_pair(4,0)).first << endl;
-	cout << find_intersection_lines(make_pair(0.0,0.0), make_pair(4,4.0), make_pair(0,4), make_pair(4,0)).second << endl;
-	cout << find_intersection_lines(make_pair(1,0), make_pair(-1,0), make_pair(0,1), make_pair(0,-1)).first << endl;
-	cout << find_intersection_lines(make_pair(1,0), make_pair(-1,0), make_pair(0,1), make_pair(0,-1)).second << endl;
-	cout << find_intersection_lines(make_pair(1,0), make_pair(-1,0), make_pair(2,0), make_pair(-2,0)).first << endl;
-	cout << find_intersection_lines(make_pair(1,0), make_pair(-1,0), make_pair(2,0), make_pair(-2,0)).second << endl;*/
-
-
-	//cout << point_in_segment(make_pair(1,1),make_pair(0,0), make_pair(2,2)) << endl;
-	//cout << point_in_segment(make_pair(3,3),make_pair(0,0), make_pair(2,2)) << endl;
-
-
-	//TODO:output to file and plot
-
-	/*vector<coord> points = {make_pair(0,1)};
-	pr.points = points;
-	pr.n = 1;
-	vector<coord> obst_vert = {make_pair(3,4),make_pair(4,0),make_pair(2,1),make_pair(1,2),make_pair(1,3)};
-	pr.obstacle_vert = obst_vert;
-	pr.nobs = 5;*/
-	/*graph visibility(pr.n+pr.nobs, vector<int>(0));
-	visibility_point(visibility, 0);
-	for(int i = 0;i<visibility.size();++i) {
-		cout << "row: " << i << endl;
-		print_vector(visibility[i]);
-	}*/
-
-
-	/*pr.n = 5;
-	status_segment sg1, sg2, sg3,sg4;
-	sg1.p=0;
-	sg1.p1=1;
-	sg1.p2=2;
-	sg4.p=0;
-	sg4.p1=1;
-	sg4.p2=3;
-	sg2.p=0;
-	sg2.p1=3;
-	sg2.p2=4;
-	sg3.p=0;
-	sg3.p1 = 5;
-	sg3.p2 = 6;
-	set<status_segment> stat;
-	stat.insert(sg1);
-	stat.insert(sg4);
-	stat.insert(sg2);
-	stat.insert(sg3);
-	for (set<status_segment>::iterator it = stat.begin() ; it != stat.end(); ++it) {
-	    cout << ' ' << (*it).p1<< ' ' << (*it).p2<<endl;
-	}*/
 
 
 }
