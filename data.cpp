@@ -6,13 +6,7 @@
 //  Copyright © 2017 Xuqiang Fang. All rights reserved.
 
 
-#include <iostream>
-#include <cstdlib>
-#include <math.h>
-#include <ctime>
-#include <algorithm>
-#include <vector>
-#include <fstream>
+#include "data.h"
 
 
 #define PI 3.1415926
@@ -40,10 +34,17 @@ float calcu_angle(int x1, int y1, int x_center, int y_center){
 
 
 //data generation function, two parameters, N_par is the number of random points and n_par is the number of obstacle vertices
-// void datagene (int N_par, int n_par) {
-int main() {
-    int N_par = 300;
-    int n_par = 100;
+void datagene (int N_par, int n_par) {
+//int main() {
+    //int N_par = 300;
+    //int n_par = 100;
+    
+    if (N_par < 4*n_par) {
+        ofstream myfile("data.txt");
+        //myfile.open("data.txt");
+        myfile << "Error parameter, N should be 4 times bigger than n" <<"\n";
+    }
+    
     int N = N_par; // size of the bounding box
     int width = n_par;// size of the bouding box for obstacle
     int n = 0; // the number of vertices
@@ -268,7 +269,7 @@ int main() {
     myfile.close();
     cout<<"A message"<<"\n";
     //cout << n_obs << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
-    return 0;
+    //return 0;
 }
 
 
