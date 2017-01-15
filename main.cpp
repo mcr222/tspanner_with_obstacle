@@ -935,7 +935,7 @@ Quadtree::~Quadtree()
 vector<pair<Quadtree*,Quadtree*>> well_separated_pairs; // queue storing the well-separated pairs
 vector<pair<Quadtree*,Quadtree*>> checkDuplicate; // vector storing cells for which wspd is already found
 
-float epsilon; // to calculate 1/epsilion well-seperated pair
+float s; // to calculate 1/epsilion well-seperated pair
 
 double area(vector<coord> boundary){
 	return euclidean_distance(boundary.at(0),boundary.at(1))*euclidean_distance(boundary.at(0),boundary.at(3));
@@ -1345,7 +1345,7 @@ bool checkLeaves(Quadtree* cell1, Quadtree* cell2){
 	return cell2 == cell1->ne || cell2 == cell1->nw || cell2 == cell1->se || cell2== cell1->sw ;
 }
 
-void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
+void constructWSPD(Quadtree* cell1, Quadtree* cell2, float s){
 	/* boundary stored as..
 	 * cell1.boundary.at(0) = lb
 	 * cell1.boundary.at(1) = lt
@@ -1359,36 +1359,34 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 		/*double farthest1;
 		double farthest2;*/
 
-		vector<coord> cell1Points = getHyperRectangle(getContainedPoints(cell1));
-		vector<coord> cell2Points = getHyperRectangle(getContainedPoints(cell2));
+		vector<coord> cell1Points = getContainedPoints(cell1);
+		vector<coord> cell2Points = getContainedPoints(cell2);
 
 		/*farthest1 = getFarthestPoints(cell1Points);
 		farthest2 = getFarthestPoints(cell2Points);*/
 
-		double cellDiameter1 = euclidean_distance(cell1Points.at(0),cell1Points.at(2));
-		double cellDiameter2 = euclidean_distance(cell2Points.at(0),cell2Points.at(2));
+		double cellDiameter1 = euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(2));
+		double cellDiameter2 = euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(2));
 
 		double areaCell1 = euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(1))*euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(3));
 		double areaCell2 = euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(1))*euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(3));
 
 		double largerDiameter = cellDiameter1 >cellDiameter2 ? cellDiameter1 : cellDiameter2;
 
-		//double dist = euclidean_distance(cell1Points.at(4), cell2Points.at(4));
-
-
+		//double dist = euclidean_distance(cell1->boundary.at(4), cell2->boundary.at(4));
 		double dist;
-		additional_points[0] = cell1Points.at(4);
-		int i=pr.n+pr.nobs;
-		additional_points[1] = cell2Points.at(4);
-		int j=pr.n+pr.nobs+1;
-		if(edge_intersects_obstacle(i,j)) {
-			graph vis_gr = visibility_graph(i,j);
-			vector<int> path_unused;
-			dist = dijkstra_shortest_path(vis_gr,i,j,path_unused);
-		} else {
-			dist = euclidean_distance(cell1Points.at(4), cell2Points.at(4));
-		}
-
+			additional_points[0] = cell1->boundary.at(4);
+			int i=pr.n+pr.nobs;
+			additional_points[1] = cell2->boundary.at(4);
+			int j=pr.n+pr.nobs+1;
+		//		dist = euclidean_distance(getMidPoint(farthest1.at(0),farthest1.at(1)), getMidPoint(farthest2.at(0),farthest2.at(1)));
+			if(edge_intersects_obstacle(i,j)) {
+				graph vis_gr = visibility_graph(i,j);
+				vector<int> path_unused;
+				dist = dijkstra_shortest_path(vis_gr,i,j,path_unused);
+			} else {
+				dist = euclidean_distance(cell1->boundary.at(4), cell2->boundary.at(4));
+			}
 
 
 		// if cell2 is a leaf of cell1, return;
@@ -1396,38 +1394,22 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 			return;
 		}
 		/*coord cen;
-					cout<<"Diameters calculated"<<endl;
-					cout<<cellDiameter1<<":cell1Diameter"<<endl;
-					cout<<cellDiameter2<<":cell2Diameter"<<endl;
-					cout<<largerDiameter<<":the larger one"<<endl;
-					cen = cell1Points.at(4);
-					cout<<"center1...("<<cen.first<<","<<cen.second<<")"<<endl;
-					cen = cell2Points.at(4);
-					cout<<"center2...("<<cen.first<<","<<cen.second<<")"<<endl;
-					cout<<"distance........"<<dist<<endl;
-					 cout<< "epsilon * radius......"<< epsilon * largerDiameter/2 <<endl;
-					 cout<<"...cell1"<<endl;
-					 getTotalPoints(cell1);
-					 cout<<".....cell2"<<endl;
-					 getTotalPoints(cell2);
-					 cout<<"CHECK IF WS"<<endl;*/
-		if(dist >= epsilon * (largerDiameter/2) ){
-			/*cout<<"WELL-SEPARATED"<<endl;
-			coord cen;
-			cout<<"Diameters calculated"<<endl;
-			cout<<cellDiameter1<<":cell1Diameter"<<endl;
-			cout<<cellDiameter2<<":cell2Diameter"<<endl;
-			cout<<largerDiameter<<":the larger one"<<endl;
-			cen = cell1Points.at(4);
-			cout<<"center1...("<<cen.first<<","<<cen.second<<")"<<endl;
-			cen = cell2Points.at(4);
-			cout<<"center2...("<<cen.first<<","<<cen.second<<")"<<endl;
-			cout<<"distance........"<<dist<<endl;
-			 cout<< "epsilon * radius......"<< epsilon * largerDiameter/2 <<endl;
-			 cout<<"...cell1"<<endl;
-			 getTotalPoints(cell1);
-			 cout<<".....cell2"<<endl;
-			 getTotalPoints(cell2);*/
+		cout<<"Diameters calculated"<<endl;
+		cout<<cellDiameter1<<":cell1Diameter"<<endl;
+		cout<<cellDiameter2<<":cell2Diameter"<<endl;
+		cout<<largerDiameter<<":the larger one"<<endl;
+		cen = cell1->boundary.at(4);
+		cout<<"center1...("<<cen.first<<","<<cen.second<<")"<<endl;
+		cen = cell2->boundary.at(4);
+		cout<<"center2...("<<cen.first<<","<<cen.second<<")"<<endl;
+		cout<<"distance........"<<dist<<endl;
+		 cout<< "s * radius......"<< s * largerDiameter/2 <<endl;
+		 cout<<"...cell1"<<endl;
+		 printContainedPoints(cell1);
+		 cout<<".....cell2"<<endl;
+		 printContainedPoints(cell2);
+		 cout<<"CHECK IF WS"<<endl;*/
+		if(dist >= s * (largerDiameter/2) ){
 
 			 // If leaf cells, and equal, remove them
 			 bool equalLeaves = false;
@@ -1440,7 +1422,7 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 			 }
 
 
-			//The two cell's points are 1/epsilon-separated
+			//The two cell's points are 1/s-separated
 			//vector<coord> diff = instersection(cell1Points, cell2Points);
 			// To remove such pairs.
 			//if(diff.size() <=0 )
@@ -1449,13 +1431,9 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 			 return;
 		}
 	else{
-		if(cell1->cellArea < cell2->cellArea){
+		if((cell1->cellArea < cell2->cellArea)||(cell1->cellArea == cell2->cellArea && cell1Points.size()< cell2Points.size())){
 		//if(areaCell1 < areaCell2){
-				// Swap the cells
-				/*cout<<"--------------------"<<endl;
-				cout<<"BEFORE SWAP"<<endl;
-				printContainedPoints(cell1);
-				printContainedPoints(cell2);*/
+				//Swap the cells
 				Quadtree* temp;
 				temp = cell1;
 				cell1 = cell2;
@@ -1463,38 +1441,40 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 				/*cout<<"SWAPPED"<<endl;
 				printContainedPoints(cell1);
 				printContainedPoints(cell2);
-				cout<<"0000000000000000000000000"<<endl;*/
+				cout<<"---------"<<endl;*/
 			}
+
 		if(!(cell1->ne == NULL && cell1->nw == NULL && cell1->se == NULL && cell1->sw == NULL)){
 			if(cell1->ne !=NULL){
-				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->ne,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->ne)) == checkDuplicate.end()){
-					checkDuplicate.push_back(make_pair(cell1->ne,cell2));
-					constructWSPD(cell1->ne,cell2,epsilon);
-				}
+							if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->ne,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->ne)) == checkDuplicate.end()){
+								checkDuplicate.push_back(make_pair(cell1->ne,cell2));
+								constructWSPD(cell1->ne,cell2,s);
+							}
 
-			}
-			if(cell1->nw !=NULL){
-				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->nw,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->nw)) == checkDuplicate.end()){
-					checkDuplicate.push_back(make_pair(cell1->nw,cell2));
-					constructWSPD(cell1->nw,cell2,epsilon);
-				}
-			}
-			if(cell1->se !=NULL){
-				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->se,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->se)) == checkDuplicate.end()){
-					checkDuplicate.push_back(make_pair(cell1->se,cell2));
-					constructWSPD(cell1->se,cell2,epsilon);
-				}
-			}
-			if(cell1->sw !=NULL){
-				if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->sw,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->sw)) == checkDuplicate.end()){
-					checkDuplicate.push_back(make_pair(cell1->sw,cell2));
-					constructWSPD(cell1->sw,cell2,epsilon);
+						}
+						if(cell1->nw !=NULL){
+							if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->nw,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->nw)) == checkDuplicate.end()){
+								checkDuplicate.push_back(make_pair(cell1->nw,cell2));
+								constructWSPD(cell1->nw,cell2,s);
+							}
+						}
+						if(cell1->se !=NULL){
+							if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->se,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->se)) == checkDuplicate.end()){
+								checkDuplicate.push_back(make_pair(cell1->se,cell2));
+								constructWSPD(cell1->se,cell2,s);
+							}
+						}
+						if(cell1->sw !=NULL){
+							if ( find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell1->sw,cell2)) == checkDuplicate.end() && find(checkDuplicate.begin(), checkDuplicate.end(), make_pair(cell2,cell1->sw)) == checkDuplicate.end()){
+								checkDuplicate.push_back(make_pair(cell1->sw,cell2));
+								constructWSPD(cell1->sw,cell2,s);
+							}
+						}
+					}
 				}
 			}
 		}
-	}
-}
-}
+
 
 void writeFile(char filename[], int depth) {
 	/*
@@ -1578,7 +1558,7 @@ int main() {
 	cout << positive_intersection(make_pair(1,1), make_pair(1,50), make_pair(1,60)) << endl;
 	cout << positive_intersection(make_pair(1,1), make_pair(1,2), make_pair(1,-3)) << endl;*/
 
-	string file="Spiral2";
+	string file="wspdTest";
 	cout << "File name:" << endl;
 	//cin >> file;
 	//char filename[] = "data.txt";
@@ -1601,31 +1581,33 @@ int main() {
 
 	writeFile(filename, tspanner, res);
 
-	system( "python plot.py" );
+	/*system( "python plot.py" );
 	writeFile(filename, obstacle_visibility, res);
 	system( "python plot.py" );
 
 
-//	vector<coord> outerBoundary = getHyperRectangle(pr.points);
-//	Quadtree quadtree = Quadtree(outerBoundary);
-//	constructQuadTree(&quadtree,pr.points);
-//
-//	//printQuadTree(&quadtree);
-//
-//	pr.t = 2;
-//	epsilon = (4*(pr.t +1))/( pr.t - 1 + 0.01);
-//	cout<<epsilon <<": epsilon"<<endl;
-//
-//	constructWSPD(&quadtree,&quadtree,epsilon);
-//
-//	build_tspanner(tspanner);
-//
-//	vector<edge> all_edges_sorted = find_all_edges();
-//	result res = computeResultParameters(tspanner,all_edges_sorted);
-//
-//	writeFile(filename, tspanner, res);
-//
-//	writeFile(filename,0);
+	vector<coord> outerBoundary = getHyperRectangle(pr.points);
+	Quadtree quadtree = Quadtree(outerBoundary);
+	constructQuadTree(&quadtree,pr.points);
+
+	//printQuadTree(&quadtree);
+
+	pr.t = 2;
+	s = (4*(pr.t +1))/( pr.t - 1 + 0.01);
+	cout<<s <<": s"<<endl;
+	clock_t tStart = clock();
+	constructWSPD(&quadtree,&quadtree,s);
+
+	build_tspanner(tspanner);
+	double execution_timer = (clock()-tStart)/(double)(CLOCKS_PER_SEC/1000);
+	vector<edge> all_edges_sorted = find_all_edges();
+	result res = computeResultParameters(tspanner,all_edges_sorted);
+	res.execution_time = execution_timer;
+	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
+
+	writeFile(filename, tspanner, res);
+
+	//writeFile(filename,0);*/
 
 
 }
