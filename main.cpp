@@ -215,8 +215,7 @@ double compute_angle(coord p1, coord p, coord p2) {
 	return atan2(-det, -dot)+M_PI;
 }
 
-coord infinity_point(0,100000);
-void insert_segment_events(vector<event>& events,int i, int p, int obst1, int obst2) {
+void insert_segment_events(vector<event>& events,int i, int p, int obst1, int obst2, coord infinity_point) {
 	event evt1;
 	event evt2;
 	edge segment;
@@ -369,7 +368,7 @@ struct status_segment {
 
 };
 
-void initiate_status_segment(set<status_segment>& status, int p, int obs1, int obs2) {
+void initiate_status_segment(set<status_segment>& status, int p, int obs1, int obs2, coord infinity_point) {
 	if(edges_intersect(getpoint(p),infinity_point,getpoint(obs1),getpoint(obs2))) {
 		status_segment edg;
 		edg.p1 = obs1;
@@ -379,10 +378,14 @@ void initiate_status_segment(set<status_segment>& status, int p, int obs1, int o
 	}
 }
 
-void initiate_status(set<status_segment>& status, int p){
-	initiate_status_segment(status, p, pr.n+pr.nobs-1, pr.n);
+void initiate_status(set<status_segment>& status, int p, coord infinity_point){
+	if(p!=pr.n+pr.nobs-1 && p!=pr.n) {
+		initiate_status_segment(status, p, pr.n+pr.nobs-1, pr.n, infinity_point);
+	}
 	for(int i=1;i<pr.nobs;++i) {
-		initiate_status_segment(status, p, pr.n+i-1, pr.n+i);
+		if(p!=pr.n+i-1 && p!=pr.n+i) {
+			initiate_status_segment(status, p, pr.n+i-1, pr.n+i, infinity_point);
+		}
 	}
 }
 
@@ -400,15 +403,16 @@ void visibility_point(graph& visibility, int p) {
 	//cout << "point: " << getpoint(p).first << " "<< getpoint(p).second << endl;
 	//TODO: this isn't to careful with parallel lines
 	vector<event> events(2*pr.nobs);
-	insert_segment_events(events,0, p, pr.n+pr.nobs-1, pr.n);
+	coord infinity_point(0,100000);
+	insert_segment_events(events,0, p, pr.n+pr.nobs-1, pr.n,infinity_point);
 	for(int i=1;i<pr.nobs;++i) {
-		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i);
+		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i,infinity_point);
 	}
 	sort(events.begin(),events.end(),less<event>());
 	//print_vector(events);
 
 	set<status_segment> status;
-	initiate_status(status, p);
+	initiate_status(status, p,infinity_point);
 	/*cout << "initial status: " << endl;
 	for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
 		cout <<(*it).p1 << " " << (*it).p2 << endl;
@@ -461,16 +465,72 @@ void print_vector(vector<int> vec) {
 	cout << endl;
 }
 
-bool diagonal_in_obstacle(int p1, int p2){
-	if(edges_intersect(getpoint(p1),getpoint(p2),getpoint(pr.n+pr.nobs-1),getpoint(pr.n))) {
-		return true;
-	}
+void visibility_point_obstacle(graph& visibility, int p, int previous, int next) {
+	cout << "point: " << p << endl;
+	cout << "previous: " << previous << " next: " << next << endl;
+	//TODO: this isn't to careful with parallel lines
+	vector<event> events(2*pr.nobs);
+	double max_angle =compute_angle(getpoint(previous),getpoint(p),getpoint(next));
+	cout << "max angle: " << max_angle << endl;
+	//as the points are ordered clockwise we will always go from previous to next and we will be
+	//rotating on the outside of the polygon
+	int k=1000;
+	coord infinity_point = make_pair(k*getpoint(previous).first+(1-k)*getpoint(p).first,k*getpoint(previous).second+(1-k)*getpoint(p).second);
+
+	insert_segment_events(events,0, p, pr.n+pr.nobs-1, pr.n, infinity_point);
 	for(int i=1;i<pr.nobs;++i) {
-		if(edges_intersect(getpoint(p1),getpoint(p2),getpoint(pr.n+i-1),getpoint(pr.n+i))) {
-			return true;
+		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i, infinity_point);
+	}
+	sort(events.begin(),events.end(),less<event>());
+	print_vector(events);
+
+	set<status_segment> status;
+	initiate_status(status, p, infinity_point);
+	cout << "initial status: " << endl;
+	for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+		cout <<(*it).p1 << " " << (*it).p2 << endl;
+	}
+
+	event evt;
+	status_segment seg, closest_seg;
+	edge closest_edge;
+	set<int> visible_points;
+	seg.p = p;
+	for(int i=0;i<events.size();++i) {
+		evt = events[i];
+		if(evt.angle < max_angle && evt.p!=p){
+			seg.p1 = evt.segment.p1;
+			seg.p2 = evt.segment.p2;
+			cout << "status "<< evt.p << endl;
+			if(evt.starting) {
+				cout << "inserting: " << seg.p1 << seg.p2 << endl;
+				status.insert(seg);
+			} else {
+				cout << "erasing: " << seg.p1 << seg.p2 << endl;
+				status.erase(seg);
+			}
+
+			for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+				cout <<(*it).p1 << " " << (*it).p2 << endl;
+			}
+
+			closest_seg = *(status.begin());
+			closest_edge.p1 = closest_seg.p1;
+			closest_edge.p2 = closest_seg.p2;
+
+			if(status.size()==0 || evt.segment == closest_edge) {
+				cout << "visible: " << evt.p << endl;
+				visible_points.insert(evt.p);
+			}
 		}
 	}
-	return false;
+
+	for(set<int>::iterator it=visible_points.begin();it!=visible_points.end();++it) {
+		if(p!=*it) {
+			insert_edge(visibility, p, *it);
+		}
+	}
+
 }
 
 bool first = true;
@@ -486,25 +546,21 @@ graph insert_obstacle_edges() {
 			insert_edge(visibility,pr.n+i-1,pr.n+i);
 		}
 
-		//TODO: can this be improved with visibility graph??
-		//it would improve from nobs^3 to nobs^2*log(nobs)
-		for(int i=0;i<pr.nobs;++i) {
-			for(int j=0;j<pr.nobs;++j) {
-				if(i!=j && !diagonal_in_obstacle(pr.n+i,pr.n+j)) {
-					insert_edge(visibility,pr.n+i,pr.n+j);
-				}
-			}
-			//visibility_point(visibility,pr.n+i);
-		}
 
-		/*cout << "visibility obstacle" << endl;
+		visibility_point_obstacle(visibility,pr.n,pr.n+pr.nobs-1,pr.n+1);
+		for(int i=1;i<pr.nobs-1;++i) {
+			visibility_point_obstacle(visibility,pr.n+i,pr.n+i-1,pr.n+i+1);
+		}
+		visibility_point_obstacle(visibility,pr.n+pr.nobs-1,pr.n+pr.nobs-2,pr.n);
+
+		cout << "visibility obstacle" << endl;
 		for(int i = 0;i<visibility.size();++i) {
 			cout << "row: " << i << endl;
 			for(set<int>::iterator it=visibility[i].begin();it!=visibility[i].end();++it) {
 				cout << *it << " ";
 			}
 			cout << endl;
-		}*/
+		}
 		first = false;
 		obstacle_visibility = visibility;
 	}
@@ -1263,7 +1319,7 @@ void execute_WSPD(char filename[]){
 }
 
 int main() {
-	char filename[] = "Data_examples/geometricspanners.txt";
+	char filename[] = "Data_examples/ex3.txt";
 	readFile(filename);
 
 	graph tspanner(pr.n+pr.nobs, set<int>());
@@ -1279,8 +1335,8 @@ int main() {
 	res.execution_time = execution_timer;
 	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
 
-	writeFile(filename, tspanner, res);
-
+	//writeFile(filename, tspanner, res);
+	writeFile(filename, obstacle_visibility, res);
 
 
 //	vector<coord> outerBoundary = getHyperRectangle(pr.points);
