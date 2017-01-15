@@ -1,7 +1,7 @@
 #include <tuple>
 #include <iostream>
 #include <string>
-#include<fstream>
+#include <fstream>
 #include <vector>
 #include <math.h>
 #include <queue>
@@ -10,6 +10,7 @@
 #include <limits>
 #include <time.h>
 #include <map>
+#include "data.h"
 
 using namespace std;
 
@@ -85,7 +86,7 @@ public:
 };
 
 //tested
-void readFile(char filename[]) {
+void readFile(string filename) {
 	cout << "Reading dataset: " << filename << endl;
 	ifstream file(filename);
 	int n, nobs,a,b;
@@ -311,6 +312,22 @@ coord find_intersection_lines(coord p1, coord p2, coord v1, coord v2) {
 	return make_pair(n1/d,n2/d);
 }
 
+//tested
+bool positive_intersection(coord p, coord p1, coord inters) {
+	coord v = make_pair(p1.first-p.first,p1.second-p.second);
+	coord vinters = make_pair(inters.first-p.first,inters.second-p.second);
+	if(p.first==1042 && p.second==1462) {
+		cout << inters.first << " " << inters.second << endl;
+		cout << p.first << " " << p.second << endl;
+		cout << p1.first << " " << p1.second << endl;
+		cout << v.first << " " << v.second << endl;
+		cout << vinters.first << " " << vinters.second << endl;
+		cout << v.first*vinters.first+v.second*vinters.second << endl;
+	}
+
+	return same_direction_vectors(v, vinters);
+}
+
 
 struct status_segment {
 	int p1;
@@ -324,7 +341,7 @@ struct status_segment {
 	bool operator < (const status_segment seg) const {
 		//as they are status segments, they will overlap from the points p view
 		//coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(p1),getpoint(p2));
-
+		int k=20;
 		if((seg.p1==p1 && seg.p2==p2)||
 				(seg.p1==p2 && seg.p2==p1)) {
 			//cout << "first false" << endl;
@@ -332,28 +349,55 @@ struct status_segment {
 		}
 
 		coord inters;
+		if(p==k) {
+			cout << p1 << " " << p2 << " " << seg.p1 << " " << seg.p2 << endl;
+		}
 		if(seg.p1!= p1 && seg.p1!=p2) {
 			if(edges_intersect(getpoint(p),getpoint(seg.p1),getpoint(p1),getpoint(p2))) {
-				//cout << "1st true" << endl;
+
+				if(p==k) {
+					cout << "1st true" << endl;
+				}
 				return true;
 			}
 			else {
-				//cout << "inters1" << endl;
+				if(p==k) {
+					cout << "inters1 "<< seg.p1 << endl;
+				}
 				inters = find_intersection_lines(getpoint(p),getpoint(seg.p1),getpoint(p1),getpoint(p2));
-				if(point_in_segment(inters,getpoint(p1),getpoint(p2))) {
+				if(p==k) {
+					cout <<"inters "<< inters.first << " " << inters.second << endl;
+					cout << "p "<< getpoint(p).first << " " << getpoint(p).second << endl;
+					cout << "p2 "<< getpoint(p2).first << " " << getpoint(p2).second << endl;
+					cout << "seg.p1 "<< getpoint(seg.p1).first << " " << getpoint(seg.p1).second << endl;
+					cout << "seg.p2 "<< getpoint(seg.p2).first << " " << getpoint(seg.p2).second << endl;
+					cout <<"positive int "<< positive_intersection(getpoint(p), getpoint(seg.p1), inters) << endl;
+					cout << "point in seg"<< point_in_segment(inters,getpoint(p1),getpoint(p2)) << endl;
+				}
+				if(positive_intersection(getpoint(p), getpoint(seg.p1), inters)
+						&& point_in_segment(inters,getpoint(p1),getpoint(p2))) {
 					return false;
 				}
 			}
 		}
 		if(seg.p2!= p1 && seg.p2!=p2) {
 			if(edges_intersect(getpoint(p),getpoint(seg.p2),getpoint(p1),getpoint(p2))) {
-				//cout << "2nd true" << endl;
+
+				if(p==k) {
+					cout << "2nd true" << endl;
+				}
 				return true;
 			}
 			else {
-				//cout << "inters2" << endl;
+				if(p==k) {
+					cout << "inters2" << endl;
+				}
 				inters = find_intersection_lines(getpoint(p),getpoint(seg.p2),getpoint(p1),getpoint(p2));
-				if(point_in_segment(inters,getpoint(p1),getpoint(p2))) {
+				if(positive_intersection(getpoint(p), getpoint(seg.p2), inters) &&
+						point_in_segment(inters,getpoint(p1),getpoint(p2))) {
+					if(p==k) {
+							cout << "inters2 false" << endl;
+					}
 					return false;
 				}
 			}
@@ -361,13 +405,21 @@ struct status_segment {
 		}
 		if(p1!= seg.p1 && p1!=seg.p2) {
 			if(edges_intersect(getpoint(p),getpoint(p1),getpoint(seg.p1),getpoint(seg.p2))) {
-				//cout << "1st false" << endl;
+				if(p==k) {
+					cout << "1st false" << endl;
+				}
 				return false;
 			}
 			else {
-				//cout << "inters3" << endl;
+				if(p==k) {
+					cout << "inters3" << endl;
+				}
 				inters = find_intersection_lines(getpoint(p),getpoint(p1),getpoint(seg.p1),getpoint(seg.p2));
-				if(point_in_segment(inters,getpoint(seg.p1),getpoint(seg.p2))) {
+				if(positive_intersection(getpoint(p), getpoint(p1), inters) &&
+						point_in_segment(inters,getpoint(seg.p1),getpoint(seg.p2))) {
+					if(p==k) {
+						cout << "inters3 true" << endl;
+					}
 					return true;
 				}
 			}
@@ -375,15 +427,31 @@ struct status_segment {
 		}
 		if(p2!= seg.p1 && p2!=seg.p2) {
 			if(edges_intersect(getpoint(p),getpoint(p2),getpoint(seg.p1),getpoint(seg.p2))) {
-				//cout << "2nd false" << endl;
+				if(p==k) {
+					cout << "2nd false" << endl;
+				}
 				return false;
 			}
 			else {
-				//cout << "inters4" << endl;
+				if(p==k) {
+					cout << "inters4" << endl;
+				}
 				inters = find_intersection_lines(getpoint(p),getpoint(p2),getpoint(seg.p1),getpoint(seg.p2));
-				//cout << inters.first << " " << inters.second << endl;
-				if(point_in_segment(inters,getpoint(seg.p1),getpoint(seg.p2))) {
-					//cout << "inters4 true" << endl;
+				if(p==k) {
+					cout <<"inters "<< inters.first << " " << inters.second << endl;
+					cout << "p "<< getpoint(p).first << " " << getpoint(p).second << endl;
+					cout << "p2 "<< getpoint(p2).first << " " << getpoint(p2).second << endl;
+					cout << "seg.p1 "<< getpoint(seg.p1).first << " " << getpoint(seg.p1).second << endl;
+					cout << "seg.p2 "<< getpoint(seg.p2).first << " " << getpoint(seg.p2).second << endl;
+					cout <<"positive int "<< positive_intersection(getpoint(p), getpoint(p2), inters) << endl;
+					cout << "point in seg"<< point_in_segment(inters,getpoint(seg.p1),getpoint(seg.p2)) << endl;
+
+				}
+				if(positive_intersection(getpoint(p), getpoint(p2), inters) &&
+						point_in_segment(inters,getpoint(seg.p1),getpoint(seg.p2))) {
+					if(p==k) {
+						cout << "inters4 true" << endl;
+					}
 					return true;
 				}
 			}
@@ -397,10 +465,14 @@ struct status_segment {
 		string this_seg = to_string(p1)+to_string(p2);
 		string other_seg = to_string(seg.p1)+to_string(seg.p2);
 		if(this_seg<other_seg) {
-			//cout << "last true" << endl;
+			if(p==k) {
+				cout << "last true" << endl;
+			}
 			return true;
 		} else {
-			//cout << "last false" << endl;
+			if(p==k) {
+				cout << "last false" << endl;
+			}
 			return false;
 		}
 	}
@@ -408,12 +480,12 @@ struct status_segment {
 };
 
 void initiate_status_segment(set<status_segment>& status, int p, int obs1, int obs2, coord infinity_point) {
-	if(p==7) {
+	/*if(p==7) {
 		cout << "initiating: " << p << " obs1: " << obs1 << " obs2: " << obs2 << endl;
 		cout << "cond: " << edges_intersect(getpoint(p),infinity_point,getpoint(obs1),getpoint(obs2)) <<
 				" " << (compute_angle(getpoint(obs1), getpoint(p), infinity_point)!=0.0) << " " <<
 				(compute_angle(getpoint(obs2), getpoint(p), infinity_point)!=0.0) << endl;
-	}
+	}*/
 	if(edges_intersect(getpoint(p),infinity_point,getpoint(obs1),getpoint(obs2)) &&
 		compute_angle(getpoint(obs1), getpoint(p), infinity_point)!=0 &&
 		compute_angle(getpoint(obs2), getpoint(p), infinity_point)!=0 ) {
@@ -446,8 +518,11 @@ void print_vector(vector<event> vec) {
 }
 
 void visibility_point(graph& visibility, int p) {
-	cout << "point: " << p << endl;
-	cout << "point: " << getpoint(p).first << " "<< getpoint(p).second << endl;
+	int k=-50;
+	if(p==k) {
+		cout << "point: " << p << endl;
+		cout << "point: " << getpoint(p).first << " "<< getpoint(p).second << endl;
+	}
 	//TODO: this isn't to careful with parallel lines
 	vector<event> events(2*pr.nobs);
 	coord infinity_point(0,100000);
@@ -456,13 +531,17 @@ void visibility_point(graph& visibility, int p) {
 		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i,infinity_point);
 	}
 	sort(events.begin(),events.end(),less<event>());
-	print_vector(events);
+	if(p==k) {
+		print_vector(events);
+	}
 
 	set<status_segment> status;
 	initiate_status(status, p,infinity_point);
-	cout << "initial status: " << endl;
-	for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
-		cout <<(*it).p1 << " " << (*it).p2 << endl;
+	if(p==k) {
+		cout << "initial status: " << endl;
+		for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+			cout <<(*it).p1 << " " << (*it).p2 << endl;
+		}
 	}
 
 	event evt;
@@ -474,17 +553,26 @@ void visibility_point(graph& visibility, int p) {
 		evt = events[i];
 		seg.p1 = evt.segment.p1;
 		seg.p2 = evt.segment.p2;
-		cout << "status "<< evt.p << endl;
+		if(p==k) {
+			cout << "status "<< evt.p << endl;
+		}
 		if(evt.starting) {
-			cout << "inserting: " << seg.p1 << seg.p2 << endl;
+			if(p==k) {
+				cout << "inserting: " << seg.p1 << seg.p2 << endl;
+			}
 			status.insert(seg);
 		} else {
-			cout << "erasing: " << seg.p1 << seg.p2 << endl;
+			if(p==k) {
+				cout << "erasing: " << seg.p1 << seg.p2 << endl;
+			}
+
 			status.erase(seg);
 		}
 
-		for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
-			cout <<(*it).p1 << " " << (*it).p2 << endl;
+		if(p==k) {
+			for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+				cout <<(*it).p1 << " " << (*it).p2 << endl;
+			}
 		}
 
 		closest_seg = *(status.begin());
@@ -492,7 +580,9 @@ void visibility_point(graph& visibility, int p) {
 		closest_edge.p2 = closest_seg.p2;
 
 		if(status.size()==0 || evt.segment == closest_edge) {
-			cout << "visible: " << evt.p << endl;
+			if(p==k) {
+				cout << "visible: " << evt.p << endl;
+			}
 			visible_points.insert(evt.p);
 		}
 	}
@@ -513,29 +603,39 @@ void print_vector(vector<int> vec) {
 }
 
 void visibility_point_obstacle(graph& visibility, int p, int previous, int next) {
-	cout << "obstacle point: " << p << endl;
-	cout << "previous: " << previous << " next: " << next << endl;
+	int k = 20;
+	if(p==k) {
+		cout << "obstacle point: " << p << endl;
+		cout << "obstacle point: " << getpoint(p).first << " " << getpoint(p).second << endl;
+		cout << "previous: " << previous << " next: " << next << endl;
+	}
 	//TODO: this isn't to careful with parallel lines
 	vector<event> events(2*pr.nobs);
 	double max_angle =compute_angle(getpoint(previous),getpoint(p),getpoint(next));
-	cout << "max angle: " << max_angle << endl;
+	if(p==k) {
+		cout << "max angle: " << max_angle << endl;
+	}
 	//as the points are ordered clockwise we will always go from previous to next and we will be
 	//rotating on the outside of the polygon
-	int k=1000;
-	coord infinity_point = make_pair(k*getpoint(previous).first+(1-k)*getpoint(p).first,k*getpoint(previous).second+(1-k)*getpoint(p).second);
+	int mult=1000;
+	coord infinity_point = make_pair(mult*getpoint(previous).first+(1-mult)*getpoint(p).first,mult*getpoint(previous).second+(1-mult)*getpoint(p).second);
 
 	insert_segment_events(events,0, p, pr.n+pr.nobs-1, pr.n, infinity_point);
 	for(int i=1;i<pr.nobs;++i) {
 		insert_segment_events(events,i, p, pr.n+i-1, pr.n+i, infinity_point);
 	}
 	sort(events.begin(),events.end(),less<event>());
-	print_vector(events);
+	if(p==k) {
+		print_vector(events);
+	}
 
 	set<status_segment> status;
 	initiate_status(status, p, infinity_point);
-	cout << "initial status: " << endl;
-	for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
-		cout <<(*it).p1 << " " << (*it).p2 << endl;
+	if(p==k) {
+		cout << "initial status: " << endl;
+		for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+			cout <<(*it).p1 << " " << (*it).p2 << endl;
+		}
 	}
 
 	event evt;
@@ -548,17 +648,24 @@ void visibility_point_obstacle(graph& visibility, int p, int previous, int next)
 		if(evt.angle < max_angle && evt.p!=p){
 			seg.p1 = evt.segment.p1;
 			seg.p2 = evt.segment.p2;
-			cout << "status "<< evt.p << endl;
+			if(p==k) {
+				cout << "status "<< evt.p << endl;
+			}
 			if(evt.starting) {
-				cout << "inserting: " << seg.p1 << seg.p2 << endl;
+				if(p==k) {
+					cout << "inserting: " << seg.p1 << seg.p2 << endl;
+				}
 				status.insert(seg);
 			} else {
-				cout << "erasing: " << seg.p1 << seg.p2 << endl;
+				if(p==k) {
+					cout << "erasing: " << seg.p1 << seg.p2 << endl;
+				}
 				status.erase(seg);
 			}
-
-			for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
-				cout <<(*it).p1 << " " << (*it).p2 << endl;
+			if(p==k) {
+				for(set<status_segment>::iterator it = status.begin();it!=status.end();++it) {
+					cout <<(*it).p1 << " " << (*it).p2 << endl;
+				}
 			}
 
 			closest_seg = *(status.begin());
@@ -566,7 +673,9 @@ void visibility_point_obstacle(graph& visibility, int p, int previous, int next)
 			closest_edge.p2 = closest_seg.p2;
 
 			if(status.size()==0 || evt.segment == closest_edge) {
-				cout << "visible: " << evt.p << endl;
+				if(p==k) {
+					cout << "visible: " << evt.p << endl;
+				}
 				visible_points.insert(evt.p);
 			}
 		}
@@ -600,14 +709,14 @@ graph insert_obstacle_edges() {
 		}
 		visibility_point_obstacle(visibility,pr.n+pr.nobs-1,pr.n+pr.nobs-2,pr.n);
 
-		cout << "visibility obstacle" << endl;
-		for(int i = 0;i<visibility.size();++i) {
+		//cout << "visibility obstacle" << endl;
+		/*for(int i = 0;i<visibility.size();++i) {
 			cout << "row: " << i << endl;
 			for(set<int>::iterator it=visibility[i].begin();it!=visibility[i].end();++it) {
 				cout << *it << " ";
 			}
 			cout << endl;
-		}
+		}*/
 		first = false;
 		obstacle_visibility = visibility;
 	}
@@ -693,7 +802,7 @@ struct result {
 	double execution_time;
 };
 
-void writeFile(char filename[], graph& graph, result& res) {
+void writeFile(string filename, graph& graph, result& res) {
 	cout << "Writting output"<< endl;
     ifstream file(filename);
     string str;
@@ -1272,7 +1381,6 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 		int i=pr.n+pr.nobs;
 		additional_points[1] = cell2Points.at(4);
 		int j=pr.n+pr.nobs+1;
-	//		dist = euclidean_distance(getMidPoint(farthest1.at(0),farthest1.at(1)), getMidPoint(farthest2.at(0),farthest2.at(1)));
 		if(edge_intersects_obstacle(i,j)) {
 			graph vis_gr = visibility_graph(i,j);
 			vector<int> path_unused;
@@ -1462,46 +1570,62 @@ void execute_WSPD(char filename[]){
 }
 
 int main() {
-	char filename[] = "Data_examples/wspdTest2.txt";
+
+	//datagene(500,100);
+
+	/*cout << positive_intersection(make_pair(0,0), make_pair(1,1), make_pair(2,2)) << endl;
+	cout << positive_intersection(make_pair(0,0), make_pair(1,1), make_pair(-1,-1)) << endl;
+	cout << positive_intersection(make_pair(1,1), make_pair(1,50), make_pair(1,60)) << endl;
+	cout << positive_intersection(make_pair(1,1), make_pair(1,2), make_pair(1,-3)) << endl;*/
+
+	string file="Spiral2";
+	cout << "File name:" << endl;
+	//cin >> file;
+	//char filename[] = "data.txt";
+
+	string filename = "Data_examples/"+file+".txt";
+	cout << filename << endl;
 	readFile(filename);
 
 	graph tspanner(pr.n+pr.nobs, set<int>());
 
-
-//	clock_t tStart = clock();
-//	vector<edge> all_edges_sorted = find_all_edges();
-//
-//	greedy_tspanner(tspanner,all_edges_sorted);
-//	double execution_timer = (clock()-tStart)/(double)(CLOCKS_PER_SEC/1000);
-//
-//	result res = computeResultParameters(tspanner,all_edges_sorted);
-//	res.execution_time = execution_timer;
-//	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
-//
-//	writeFile(filename, tspanner, res);
-	//writeFile(filename, obstacle_visibility, res);
-
-
-	vector<coord> outerBoundary = getHyperRectangle(pr.points);
-	Quadtree quadtree = Quadtree(outerBoundary);
-	constructQuadTree(&quadtree,pr.points);
-
-	//printQuadTree(&quadtree);
-
-	pr.t = 1.7;
-	epsilon = (4*(pr.t +1))/( pr.t - 1 + 0.01);
-	cout<<epsilon <<": epsilon"<<endl;
-
-	constructWSPD(&quadtree,&quadtree,epsilon);
-
-	build_tspanner(tspanner);
-
+	clock_t tStart = clock();
 	vector<edge> all_edges_sorted = find_all_edges();
+
+	greedy_tspanner(tspanner,all_edges_sorted);
+	double execution_timer = (clock()-tStart)/(double)(CLOCKS_PER_SEC/1000);
+
 	result res = computeResultParameters(tspanner,all_edges_sorted);
+	res.execution_time = execution_timer;
+	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
 
 	writeFile(filename, tspanner, res);
 
-	writeFile(filename,0);
+	system( "python plot.py" );
+	writeFile(filename, obstacle_visibility, res);
+	system( "python plot.py" );
+
+
+//	vector<coord> outerBoundary = getHyperRectangle(pr.points);
+//	Quadtree quadtree = Quadtree(outerBoundary);
+//	constructQuadTree(&quadtree,pr.points);
+//
+//	//printQuadTree(&quadtree);
+//
+//	pr.t = 2;
+//	epsilon = (4*(pr.t +1))/( pr.t - 1 + 0.01);
+//	cout<<epsilon <<": epsilon"<<endl;
+//
+//	constructWSPD(&quadtree,&quadtree,epsilon);
+//
+//	build_tspanner(tspanner);
+//
+//	vector<edge> all_edges_sorted = find_all_edges();
+//	result res = computeResultParameters(tspanner,all_edges_sorted);
+//
+//	writeFile(filename, tspanner, res);
+//
+//	writeFile(filename,0);
 
 
 }
