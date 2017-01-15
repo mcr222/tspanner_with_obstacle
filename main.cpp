@@ -316,7 +316,7 @@ coord find_intersection_lines(coord p1, coord p2, coord v1, coord v2) {
 bool positive_intersection(coord p, coord p1, coord inters) {
 	coord v = make_pair(p1.first-p.first,p1.second-p.second);
 	coord vinters = make_pair(inters.first-p.first,inters.second-p.second);
-	if(p.first==1042 && p.second==1462) {
+	if(false && p.first==1042 && p.second==1462) {
 		cout << inters.first << " " << inters.second << endl;
 		cout << p.first << " " << p.second << endl;
 		cout << p1.first << " " << p1.second << endl;
@@ -325,7 +325,7 @@ bool positive_intersection(coord p, coord p1, coord inters) {
 		cout << v.first*vinters.first+v.second*vinters.second << endl;
 	}
 
-	return same_direction_vectors(v, vinters);
+	return v.first*vinters.first+v.second*vinters.second>0;
 }
 
 
@@ -341,7 +341,7 @@ struct status_segment {
 	bool operator < (const status_segment seg) const {
 		//as they are status segments, they will overlap from the points p view
 		//coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(p1),getpoint(p2));
-		int k=20;
+		int k=-20;
 		if((seg.p1==p1 && seg.p2==p2)||
 				(seg.p1==p2 && seg.p2==p1)) {
 			//cout << "first false" << endl;
@@ -603,7 +603,7 @@ void print_vector(vector<int> vec) {
 }
 
 void visibility_point_obstacle(graph& visibility, int p, int previous, int next) {
-	int k = 20;
+	int k = -20;
 	if(p==k) {
 		cout << "obstacle point: " << p << endl;
 		cout << "obstacle point: " << getpoint(p).first << " " << getpoint(p).second << endl;
@@ -1560,7 +1560,7 @@ int main() {
 
 	string file="wspdTest";
 	cout << "File name:" << endl;
-	//cin >> file;
+	cin >> file;
 	//char filename[] = "data.txt";
 
 	string filename = "Data_examples/"+file+".txt";
@@ -1581,33 +1581,33 @@ int main() {
 
 	writeFile(filename, tspanner, res);
 
-	/*system( "python plot.py" );
-	writeFile(filename, obstacle_visibility, res);
 	system( "python plot.py" );
+//	writeFile(filename, obstacle_visibility, res);
+//	system( "python plot.py" );
 
 
-	vector<coord> outerBoundary = getHyperRectangle(pr.points);
-	Quadtree quadtree = Quadtree(outerBoundary);
-	constructQuadTree(&quadtree,pr.points);
+//	vector<coord> outerBoundary = getHyperRectangle(pr.points);
+//	Quadtree quadtree = Quadtree(outerBoundary);
+//	constructQuadTree(&quadtree,pr.points);
+//
+//	//printQuadTree(&quadtree);
+//
+//	pr.t = 2;
+//	s = (4*(pr.t +1))/( pr.t - 1 + 0.01);
+//	cout<<s <<": s"<<endl;
+//	clock_t tStart = clock();
+//	constructWSPD(&quadtree,&quadtree,s);
+//
+//	build_tspanner(tspanner);
+//	double execution_timer = (clock()-tStart)/(double)(CLOCKS_PER_SEC/1000);
+//	vector<edge> all_edges_sorted = find_all_edges();
+//	result res = computeResultParameters(tspanner,all_edges_sorted);
+//	res.execution_time = execution_timer;
+//	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
+//
+//	writeFile(filename, tspanner, res);
 
-	//printQuadTree(&quadtree);
-
-	pr.t = 2;
-	s = (4*(pr.t +1))/( pr.t - 1 + 0.01);
-	cout<<s <<": s"<<endl;
-	clock_t tStart = clock();
-	constructWSPD(&quadtree,&quadtree,s);
-
-	build_tspanner(tspanner);
-	double execution_timer = (clock()-tStart)/(double)(CLOCKS_PER_SEC/1000);
-	vector<edge> all_edges_sorted = find_all_edges();
-	result res = computeResultParameters(tspanner,all_edges_sorted);
-	res.execution_time = execution_timer;
-	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
-
-	writeFile(filename, tspanner, res);
-
-	//writeFile(filename,0);*/
+	//writeFile(filename,0);
 
 
 }
