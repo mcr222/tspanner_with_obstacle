@@ -32,6 +32,7 @@ class Quadtree
 
         vector<coord> boundary;
         vector<vector<coord>> containedPoints;
+        double cellArea;
 
 
         Quadtree();
@@ -89,7 +90,7 @@ Quadtree::~Quadtree()
 
 
 
-vector<pair<vector<vector<coord>>,vector<vector<coord>>>> pair_queue; // queue storing the well-separated pairs
+vector<pair<Quadtree*,Quadtree*>> well_separated_pairs; // queue storing the well-separated pairs
 vector<pair<Quadtree*,Quadtree*>> checkDuplicate; // vector storing cells for which wspd is already found
 
 problem pr;
@@ -132,6 +133,10 @@ double euclidean_distance(coord p1, coord p2) {
 	return sqrt(pow(double(p1.first-p2.first),2)+pow(double(p1.second-p2.second),2));
 }
 
+double area(vector<coord> boundary){
+	return euclidean_distance(boundary.at(0),boundary.at(1))*euclidean_distance(boundary.at(0),boundary.at(3));
+}
+
 coord getMidPoint(coord p1, coord p2) {
 	return make_pair(((p1.first+p2.first)/2),(p1.second+p2.second)/2);
 }
@@ -163,6 +168,50 @@ vector<coord> sort_y(vector<coord> points){
 }
 
 vector<coord> getHyperRectangle(vector<coord> points){
+
+	//corner case for two axis parallel points
+	if(points.size()==2){
+		sort(points.begin(), points.end());
+		if(points.at(0).first == points.at(1).first){
+			// points are y parallel
+			coord endpoint_lb = make_pair(points.at(0).first, points.at(0).second);
+			coord endpoint_lt = make_pair(points.at(1).first, points.at(1).second);
+			coord endpoint_rb = make_pair(points.at(0).first + 1, points.at(0).second);
+			coord endpoint_rt = make_pair(points.at(1).first +1,points.at(0).second);
+			// bounding box vertices stored
+				vector<coord> hyper_rectangle;
+				hyper_rectangle.push_back(endpoint_lb);
+				hyper_rectangle.push_back(endpoint_lt);
+				hyper_rectangle.push_back(endpoint_rt);
+				hyper_rectangle.push_back(endpoint_rb);
+
+				//point of intersection of diagonals
+				coord intersection = make_pair((endpoint_lb.first + endpoint_rt.first)/2 ,(endpoint_lb.second + endpoint_rt.second)/2);
+				hyper_rectangle.push_back(intersection);
+			return hyper_rectangle;
+
+		}
+		if(points.at(0).second == points.at(1).second){
+			// points are x parallel
+			coord endpoint_lb = make_pair(points.at(0).first, points.at(0).second);
+			coord endpoint_lt = make_pair(points.at(0).first , points.at(0).second+1);
+			coord endpoint_rb = make_pair(points.at(1).first , points.at(1).second );
+			coord endpoint_rt = make_pair(points.at(1).first,points.at(1).second +1);
+			// bounding box vertices stored
+				vector<coord> hyper_rectangle;
+				hyper_rectangle.push_back(endpoint_lb);
+				hyper_rectangle.push_back(endpoint_lt);
+				hyper_rectangle.push_back(endpoint_rt);
+				hyper_rectangle.push_back(endpoint_rb);
+
+				//point of intersection of diagonals
+				coord intersection = make_pair((endpoint_lb.first + endpoint_rt.first)/2 ,(endpoint_lb.second + endpoint_rt.second)/2);
+				hyper_rectangle.push_back(intersection);
+			return hyper_rectangle;
+
+		}
+	}
+
 
 	// constructs hyper rectangle and returns points splitted in two vectors.
 	vector<coord>  x_sorted_points = sort_x(points);
@@ -208,12 +257,14 @@ map<string, vector<coord>> split_points(vector<coord> points, vector<coord> boun
 
 	if(points.size()<=1){
 		splits["single"] = points;
+
 	}
 
 	else{
 		// split points into 4 sets based on these 2 sides.
 			double split_at_x;
 			double split_at_y;
+
 
 			split_at_x = boundary.at(4).first;
 			split_at_y = boundary.at(4).second;
@@ -223,118 +274,122 @@ map<string, vector<coord>> split_points(vector<coord> points, vector<coord> boun
 
 			cout<<"Split_x:"<< boundary.at(3).first<<"-"<< boundary.at(0).first<<"/2 ="<< split_at_x<<endl;
 			cout<<"Split_y:"<< boundary.at(1).second <<"-"<< boundary.at(0).second<<"/2="<<split_at_y<<endl;*/
-			//cout<<"("<<boundary.at(4).first<<","<<boundary.at(4).second<<")"<<"intersection"<<endl;
+			//cout<<"("<<boundary.at(4).first<<","<<boundary.at(4).second<<")"<<"...intersection"<<endl;
 
-			if(split_at_x!=0 && split_at_y!=0){
-				size_t i;
-				for(i =0 ; i < points.size(); i++){
-					if(points.at(i).first > split_at_x && points.at(i).second > split_at_y)
-						split_ne.push_back(points.at(i));
-					else if (points.at(i).first <= split_at_x && points.at(i).second > split_at_y)
-						split_nw.push_back(points.at(i));
-					else if (points.at(i).first <= split_at_x && points.at(i).second <= split_at_y)
-						split_sw.push_back(points.at(i));
-					else
-						split_se.push_back(points.at(i));
-					}
-				//cout<<"set"<<endl;
-
-				splits["nw"]= split_nw;
-				splits["ne"]= split_ne;
-				splits["sw"]= split_sw;
-				splits["se"]= split_se;
-
-
-
-				// ne boundary
-				if(split_ne.size()>0){
-					lb = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second+split_at_y);
-					lt = make_pair(boundary.at(1).first+split_at_x, boundary.at(1).second);
-					rt = boundary.at(2);
-					rb = make_pair(boundary.at(3).first,boundary.at(3).second+split_at_y);
-					intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
-					boundary_ne.push_back(lb);
-					boundary_ne.push_back(lt);
-					boundary_ne.push_back(rt);
-					boundary_ne.push_back(rb);
-					boundary_ne.push_back(intersection);
-
-					splits["ne_boundary"] = boundary_ne;
-					/*cout<<"NE_BOUNDARY"<<endl;
-					for(size_t i =0;i<boundary_ne.size();i++){
-							cout<<"("<<boundary_ne.at(i).first<<","<<boundary_ne.at(i).second<<"),";
-						}
-					cout<<endl;*/
-				}
-
-				// nw boundary
-				if(split_nw.size() >0 ){
-					lb = make_pair(boundary.at(0).first,boundary.at(0).second+split_at_y);
-					lt = boundary.at(1);
-					rt = make_pair(boundary.at(2).first-split_at_x, boundary.at(2).second);
-					rb = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second+split_at_y);
-					intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
-					boundary_nw.push_back(lb);
-					boundary_nw.push_back(lt);
-					boundary_nw.push_back(rt);
-					boundary_nw.push_back(rb);
-					boundary_nw.push_back(intersection);
-
-					splits["nw_boundary"] = boundary_nw;
-					/*cout<<"NW_BOUNDARY"<<endl;
-					for(size_t i =0;i<boundary_ne.size();i++){
-							cout<<"("<<boundary_nw.at(i).first<<","<<boundary_nw.at(i).second<<"),";
-						}
-					cout<<endl;*/
-				}
-
-				// sw boundary
-				if(split_sw.size()>0){
-					lb = boundary.at(0);
-					lt = make_pair(boundary.at(0).first, boundary.at(0).second+split_at_y);
-					rt = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second+split_at_y);
-					rb = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second);
-					intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
-					boundary_sw.push_back(lb);
-					boundary_sw.push_back(lt);
-					boundary_sw.push_back(rt);
-					boundary_sw.push_back(rb);
-					boundary_sw.push_back(intersection);
-
-					splits["sw_boundary"] = boundary_sw;
-					/*cout<<"	SW_BOUNDARY"<<endl;
-					for(size_t i =0;i<boundary_sw.size();i++){
-							cout<<"("<<boundary_sw.at(i).first<<","<<boundary_sw.at(i).second<<"),";
-						}
-					cout<<endl;*/
-				}
-
-				// se boundary
-				if(split_se.size() > 0){
-					lb = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second);
-					lt = make_pair(boundary.at(0).first+split_at_x,boundary.at(0).second+split_at_y);
-					rt = make_pair(boundary.at(3).first,boundary.at(3).second+split_at_y);
-					rb = boundary.at(3);
-					intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
-					boundary_se.push_back(lb);
-					boundary_se.push_back(lt);
-					boundary_se.push_back(rt);
-					boundary_se.push_back(rb);
-					boundary_se.push_back(intersection);
-
-					splits["se_boundary"] = boundary_se;
-					/*cout<<"SE_BOUNDARY"<<endl;
-					for(size_t i =0;i<boundary_se.size();i++){
-							cout<<"("<<boundary_se.at(i).first<<","<<boundary_se.at(i).second<<"),";
-						}
-					cout<<endl;*/
-				}
+			//if(split_at_x!=0 && split_at_y!=0){
+		size_t i;
+		for(i =0 ; i < points.size(); i++){
+			//cout<<"("<<points.at(i).first<<","<<points.at(i).second<<")";
+			if(points.at(i).first > split_at_x && points.at(i).second > split_at_y)
+				split_ne.push_back(points.at(i));
+			else if (points.at(i).first <= split_at_x && points.at(i).second > split_at_y)
+				split_nw.push_back(points.at(i));
+			else if (points.at(i).first <= split_at_x && points.at(i).second <= split_at_y)
+				 split_sw.push_back(points.at(i));
+			else
+				split_se.push_back(points.at(i));
 			}
+		//cout<<"sw:"<<split_sw.size()<<endl;
+
+		splits["nw"]= split_nw;
+		splits["ne"]= split_ne;
+		splits["sw"]= split_sw;
+		splits["se"]= split_se;
+
+
+
+		// ne boundary
+		if(split_ne.size()>0){
+				lb = boundary.at(4);
+				lt = make_pair(boundary.at(4).first, boundary.at(1).second);
+				rt = boundary.at(2);
+				rb = make_pair(boundary.at(2).first,boundary.at(4).second);
+				intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
+				boundary_ne.push_back(lb);
+				boundary_ne.push_back(lt);
+				boundary_ne.push_back(rt);
+				boundary_ne.push_back(rb);
+				boundary_ne.push_back(intersection);
+
+				splits["ne_boundary"] = boundary_ne;
+				/*cout<<"NE_BOUNDARY"<<endl;
+				for(size_t i =0;i<boundary_ne.size();i++){
+						cout<<"("<<boundary_ne.at(i).first<<","<<boundary_ne.at(i).second<<"),";
+					}
+				cout<<endl;*/
+			}
+
+			// nw boundary
+			if(split_nw.size() >0 ){
+				lb = make_pair(boundary.at(0).first,boundary.at(4).second);
+				lt = boundary.at(1);
+				rt = make_pair(boundary.at(4).first, boundary.at(1).second);
+				rb = boundary.at(4);
+				intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
+				boundary_nw.push_back(lb);
+				boundary_nw.push_back(lt);
+				boundary_nw.push_back(rt);
+				boundary_nw.push_back(rb);
+				boundary_nw.push_back(intersection);
+
+				splits["nw_boundary"] = boundary_nw;
+				/*cout<<"NW_BOUNDARY"<<endl;
+				for(size_t i =0;i<boundary_ne.size();i++){
+						cout<<"("<<boundary_nw.at(i).first<<","<<boundary_nw.at(i).second<<"),";
+					}
+				cout<<endl;*/
+			}
+
+			// sw boundary
+			if(split_sw.size()>0){
+				lb = boundary.at(0);
+				lt = make_pair(boundary.at(0).first, boundary.at(4).second);
+				rt = boundary.at(4);
+				rb = make_pair(boundary.at(4).first,boundary.at(0).second);
+				intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
+				boundary_sw.push_back(lb);
+				boundary_sw.push_back(lt);
+				boundary_sw.push_back(rt);
+				boundary_sw.push_back(rb);
+				boundary_sw.push_back(intersection);
+
+				splits["sw_boundary"] = boundary_sw;
+				/*cout<<"SW_BOUNDARY"<<endl;
+				for(size_t i =0;i<boundary_sw.size();i++){
+						cout<<"("<<boundary_sw.at(i).first<<","<<boundary_sw.at(i).second<<"),";
+					}
+				cout<<endl;*/
+			}
+
+			// se boundary
+			if(split_se.size() > 0){
+				lb = make_pair(boundary.at(4).first,boundary.at(0).second);
+				lt = boundary.at(4);
+				rt = make_pair(boundary.at(3).first,boundary.at(4).second);
+				rb = boundary.at(3);
+				intersection = make_pair((lb.first + rt.first)/2 ,(lb.second + rt.second)/2);
+				boundary_se.push_back(lb);
+				boundary_se.push_back(lt);
+				boundary_se.push_back(rt);
+				boundary_se.push_back(rb);
+				boundary_se.push_back(intersection);
+
+				splits["se_boundary"] = boundary_se;
+				/*cout<<"SE_BOUNDARY"<<endl;
+				for(size_t i =0;i<boundary_se.size();i++){
+						cout<<"("<<boundary_se.at(i).first<<","<<boundary_se.at(i).second<<"),";
+					}
+				cout<<endl;*/
+			}
+	//	}
 
 	}
 
 	return splits;
 }
+
+
+
 
 void constructQuadTree(Quadtree* quadtree,vector<coord> &points){
 
@@ -345,6 +400,9 @@ void constructQuadTree(Quadtree* quadtree,vector<coord> &points){
 	cout<<endl;*/
 
 	if(points.size()== 1){
+		/*cout<<"HERE"<<endl;
+		cout<<points.at(0).first<<","<<points.at(0).second<<endl;
+		cout<<"***************";*/
 		vector<vector<coord>> singlePointSet;
 		singlePointSet.push_back(points);
 		quadtree->containedPoints = singlePointSet;
@@ -373,31 +431,74 @@ void constructQuadTree(Quadtree* quadtree,vector<coord> &points){
 
 		quadtree->containedPoints = pointSets ;
 
-
-
 		if(splits["ne"].size()!=0 && splits.count("ne_boundary")==1){
 			vector<coord> outerBoundary = getHyperRectangle(splits["ne"]);
 			quadtree->ne=  new Quadtree(outerBoundary);
+			//quadtree->ne->cellArea = area(splits["ne_boundary"]);
+			quadtree->ne->cellArea = quadtree->cellArea /4;
 			constructQuadTree(quadtree->ne, splits["ne"]);
 		}
 		if(splits["nw"].size()!=0 && splits.count("nw_boundary")==1){
-			vector<coord> outerBoundary = getHyperRectangle(splits["nw"]);
+			vector<coord> outerBoundary= getHyperRectangle(splits["nw"]);
 			quadtree->nw=  new Quadtree(outerBoundary);
+			//quadtree->nw->cellArea = area(splits["nw_boundary"]);
+			quadtree->nw->cellArea = quadtree->cellArea /4;
 			constructQuadTree(quadtree->nw, splits["nw"]);
 		}
 		if(splits["se"].size()!=0 && splits.count("se_boundary")==1){
 			vector<coord> outerBoundary = getHyperRectangle(splits["se"]);
 			quadtree->se= new Quadtree(outerBoundary);
+			//quadtree->se->cellArea = area(splits["se_boundary"]);
+			quadtree->se->cellArea = quadtree->cellArea /4;
 			constructQuadTree(quadtree->se, splits["se"]);
 		}
 		if(splits["sw"].size()!=0 && splits.count("sw_boundary")==1){
-			vector<coord> outerBoundary = getHyperRectangle(splits["sw"]);
+			vector<coord> outerBoundary= getHyperRectangle(splits["sw"]);
 			quadtree->sw= new Quadtree(outerBoundary);
+			//quadtree->sw->cellArea = area(splits["sw_boundary"]);
+			quadtree->sw->cellArea = quadtree->cellArea /4;
 			constructQuadTree(quadtree->sw, splits["sw"]);
 		}
 
 	}
 
+}
+
+void printContainedPoints(Quadtree* quadTree){
+	if(quadTree!=NULL){
+			int total=0;
+		for (size_t i=0;i<quadTree->containedPoints.size();i++){
+					total += quadTree->containedPoints.at(i).size();
+					cout<<"(";
+					for(size_t j=0;j<quadTree->containedPoints.at(i).size();j++){
+						cout<<"("<<quadTree->containedPoints.at(i).at(j).first<<","<<quadTree->containedPoints.at(i).at(j).second<<")";
+					}
+					cout<<"),";
+				}
+				cout<<endl;
+				cout<<"Total Points in cell="<<total<<endl;
+	}
+}
+
+void printQuadTree(Quadtree* quadTree){
+	if(quadTree!=NULL){
+		int total=0;
+		for (size_t i=0;i<quadTree->containedPoints.size();i++){
+			total += quadTree->containedPoints.at(i).size();
+			cout<<"(";
+			for(size_t j=0;j<quadTree->containedPoints.at(i).size();j++){
+				cout<<"("<<quadTree->containedPoints.at(i).at(j).first<<","<<quadTree->containedPoints.at(i).at(j).second<<")";
+			}
+			cout<<"),";
+		}
+		cout<<endl;
+		cout<<"Total Points in cell="<<total<<endl;
+		cout<<"-----------------"<<endl;
+		printQuadTree(quadTree->ne);
+		printQuadTree(quadTree->nw);
+		printQuadTree(quadTree->se);
+		printQuadTree(quadTree->sw);
+	}
 }
 
 vector<coord> getContainedPoints(Quadtree* quadTree){
@@ -464,47 +565,63 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 	 */
 	if(cell1!=NULL && cell2!=NULL){
 
-		vector<coord> farthest1;
-		vector<coord> farthest2;
 
-		vector<coord> cell1Points = getContainedPoints(cell1);
-		vector<coord> cell2Points = getContainedPoints(cell2);
+		/*double farthest1;
+		double farthest2;*/
 
-		farthest1 = getFarthestPoints(cell1Points);
-		farthest2 = getFarthestPoints(cell2Points);
+		vector<coord> cell1Points = getHyperRectangle(getContainedPoints(cell1));
+		vector<coord> cell2Points = getHyperRectangle(getContainedPoints(cell2));
 
-		double cellDiameter1 = euclidean_distance(farthest1.at(0),farthest1.at(1));
-		double cellDiameter2 = euclidean_distance(farthest2.at(0),farthest2.at(1));
+		/*farthest1 = getFarthestPoints(cell1Points);
+		farthest2 = getFarthestPoints(cell2Points);*/
 
-		double largerDiameter = cellDiameter1 >cellDiameter2 ? cellDiameter1 : cellDiameter2;
+		double cellDiameter1 = euclidean_distance(cell1Points.at(0),cell1Points.at(2));
+		double cellDiameter2 = euclidean_distance(cell2Points.at(0),cell2Points.at(2));
 
 		double areaCell1 = euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(1))*euclidean_distance(cell1->boundary.at(0),cell1->boundary.at(3));
 		double areaCell2 = euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(1))*euclidean_distance(cell2->boundary.at(0),cell2->boundary.at(3));
 
+		double largerDiameter = cellDiameter1 >cellDiameter2 ? cellDiameter1 : cellDiameter2;
 
-		double dist = euclidean_distance(getMidPoint(farthest1.at(0),farthest1.at(1)), getMidPoint(farthest2.at(0),farthest2.at(1)));
-
+		double dist = euclidean_distance(cell1Points.at(4), cell2Points.at(4));
 
 		// if cell2 is a leaf of cell1, return;
 		if (cell1Points.size()==0 || cell2Points.size()==0 || checkLeaves(cell1,cell2)){
 			return;
 		}
-		else if(dist >= epsilon * (largerDiameter/2) ){
+		/*coord cen;
+					cout<<"Diameters calculated"<<endl;
+					cout<<cellDiameter1<<":cell1Diameter"<<endl;
+					cout<<cellDiameter2<<":cell2Diameter"<<endl;
+					cout<<largerDiameter<<":the larger one"<<endl;
+					cen = cell1Points.at(4);
+					cout<<"center1...("<<cen.first<<","<<cen.second<<")"<<endl;
+					cen = cell2Points.at(4);
+					cout<<"center2...("<<cen.first<<","<<cen.second<<")"<<endl;
+					cout<<"distance........"<<dist<<endl;
+					 cout<< "epsilon * radius......"<< epsilon * largerDiameter/2 <<endl;
+					 cout<<"...cell1"<<endl;
+					 getTotalPoints(cell1);
+					 cout<<".....cell2"<<endl;
+					 getTotalPoints(cell2);
+					 cout<<"CHECK IF WS"<<endl;*/
+		if(dist >= epsilon * (largerDiameter/2) ){
+			/*cout<<"WELL-SEPARATED"<<endl;
 			coord cen;
-			/*cout<<"Diameters calculated"<<endl;
+			cout<<"Diameters calculated"<<endl;
 			cout<<cellDiameter1<<":cell1Diameter"<<endl;
 			cout<<cellDiameter2<<":cell2Diameter"<<endl;
 			cout<<largerDiameter<<":the larger one"<<endl;
-			cen = getMidPoint(farthest1.at(0),farthest1.at(1));
+			cen = cell1Points.at(4);
 			cout<<"center1...("<<cen.first<<","<<cen.second<<")"<<endl;
-			cen = getMidPoint(farthest2.at(0),farthest2.at(1));
+			cen = cell2Points.at(4);
 			cout<<"center2...("<<cen.first<<","<<cen.second<<")"<<endl;
 			cout<<"distance........"<<dist<<endl;
 			 cout<< "epsilon * radius......"<< epsilon * largerDiameter/2 <<endl;
 			 cout<<"...cell1"<<endl;
 			 getTotalPoints(cell1);
-			 cout<<".....cell2"<<endl;*/
-			 getTotalPoints(cell2);
+			 cout<<".....cell2"<<endl;
+			 getTotalPoints(cell2);*/
 
 			 // If leaf cells, and equal, remove them
 			 bool equalLeaves = false;
@@ -517,21 +634,30 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 			 }
 
 
-
 			//The two cell's points are 1/epsilon-separated
 			//vector<coord> diff = instersection(cell1Points, cell2Points);
 			// To remove such pairs.
 			//if(diff.size() <=0 )
 			 if(!equalLeaves)
-				pair_queue.push_back(make_pair(cell1->containedPoints,cell2->containedPoints));
+				well_separated_pairs.push_back(make_pair(cell1,cell2));
+			 return;
 		}
-		else{
-		if(areaCell1 < areaCell2){
+	else{
+		if(cell1->cellArea < cell2->cellArea){
+		//if(areaCell1 < areaCell2){
 				// Swap the cells
+				/*cout<<"--------------------"<<endl;
+				cout<<"BEFORE SWAP"<<endl;
+				printContainedPoints(cell1);
+				printContainedPoints(cell2);*/
 				Quadtree* temp;
 				temp = cell1;
 				cell1 = cell2;
 				cell2 = temp;
+				/*cout<<"SWAPPED"<<endl;
+				printContainedPoints(cell1);
+				printContainedPoints(cell2);
+				cout<<"0000000000000000000000000"<<endl;*/
 			}
 		if(!(cell1->ne == NULL && cell1->nw == NULL && cell1->se == NULL && cell1->sw == NULL)){
 			if(cell1->ne !=NULL){
@@ -561,10 +687,10 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float epsilon){
 			}
 		}
 	}
-	}
+}
 }
 
-void writeFile(char filename[]) {
+void writeFile(char filename[], int depth) {
 	/*
 	 *
 	 * DOES NOT WRITE TO FILE. will change after format decided upon
@@ -578,32 +704,16 @@ void writeFile(char filename[]) {
     {
         outputFile << str << endl;
     }*/
-    cout<< "Number of well-seperated paires created = "<<pair_queue.size()<<endl;
-    //outputFile << pair_queue.size() <<endl;
-    pair<vector<vector<coord>>,vector<vector<coord>>> ws_pairs;
-    for(size_t i = 0; i<pair_queue.size();i++){
-    		ws_pairs = pair_queue.at(i);
-    		//pair_queue.pop();
-    		cout<<"Sizes:"<<ws_pairs.first.size()<<","<<ws_pairs.second.size()<<endl;
-    		//outputFile << ws_pairs.first.size() << endl;
-    		for(size_t i =0;i<ws_pairs.first.size();i++){
-    			cout<<"(";
-    			for(size_t j=0;j <ws_pairs.first.at(i).size();j++){
-    				cout<<"("<< ws_pairs.first.at(i).at(j).first <<","<<ws_pairs.first.at(i).at(j).second<<")";
-    				//outputFile << ws_pairs.first.at(i).at(j).first << " " <<ws_pairs.first.at(i).at(j).second<<endl;
-    			}
-    			cout<<"),";
-    		}
-    		outputFile << ws_pairs.second.size() << endl;
-    		cout<<endl;
-    		for(size_t i =0;i<ws_pairs.second.size();i++){
-    			cout<<"(";
-    			for(size_t j=0;j <ws_pairs.second.at(i).size();j++){
-    				cout<<"("<< ws_pairs.second.at(i).at(j).first <<","<<ws_pairs.second.at(i).at(j).second<<")";
-    				//outputFile << ws_pairs.second.at(i).at(j).first << " " <<ws_pairs.second.at(i).at(j).second<<endl;
-    			}
-    			cout<<"),";
-    		}
+    outputFile<< "Number of well-separated pairs created = "<<well_separated_pairs.size()<<endl;
+    outputFile<<" Depth of quadtree = "<<depth;
+    cout<< "Number of well-separated pairs created = "<<well_separated_pairs.size()<<endl;
+    //outputFile << well_separated_pairs.size() <<endl;
+    pair<Quadtree*,Quadtree*> ws_pairs;
+    for(size_t i = 0; i<well_separated_pairs.size();i++){
+    		ws_pairs = well_separated_pairs.at(i);
+    		//well_separated_pairs.pop();
+    		printContainedPoints(ws_pairs.first);
+    		printContainedPoints(ws_pairs.second);
     		cout<<endl;
     	}
 }
@@ -618,77 +728,45 @@ vector<coord> getAllPoints(vector<vector<coord>> points){
 	return allPoints;
 }
 
+int getDepth(Quadtree* quadtree){
+	if(quadtree == NULL){
+		return 0;
+	}
+	else{
+		int ne = getDepth(quadtree->ne);
+		int nw = getDepth(quadtree->nw);
+		int se = getDepth(quadtree->se);
+		int sw = getDepth(quadtree->sw);
 
-void printQuadTree(Quadtree* quadTree){
-	if(quadTree!=NULL){
-		int total=0;
-		for (size_t i=0;i<quadTree->containedPoints.size();i++){
-			total += quadTree->containedPoints.at(i).size();
-			cout<<"(";
-			for(size_t j=0;j<quadTree->containedPoints.at(i).size();j++){
-				cout<<"("<<quadTree->containedPoints.at(i).at(j).first<<","<<quadTree->containedPoints.at(i).at(j).second<<")";
-			}
-			cout<<"),";
-		}
-		cout<<endl;
-		cout<<"Total Points in cell="<<total<<endl;
-		cout<<"-----------------"<<endl;
-		printQuadTree(quadTree->ne);
-		printQuadTree(quadTree->nw);
-		printQuadTree(quadTree->se);
-		printQuadTree(quadTree->sw);
+		return max(max(ne,nw),max(se,sw))+1;
 	}
 }
 
+
 int main() {
-	char filename[] = "Data_examples/wspdTest.txt";
+	char filename[] = "Data_examples/geometricspanners.txt";
 	readFile(filename);
 	//graph tspanner(pr.n, vector<int>(0));
 	vector<coord> outerBoundary = getHyperRectangle(pr.points);
 	Quadtree quadtree = Quadtree(outerBoundary);
+	quadtree.cellArea = area(outerBoundary);
 	constructQuadTree(&quadtree,pr.points);
 
 	//printQuadTree(&quadtree);
 
+	int depth = getDepth(&quadtree);
+
 	// assuming pr.t = 1.5
 	cout<<pr.t<<": stretch factor"<<endl;
-	pr.t = 1.5;
-	epsilon = (4*(pr.t +1))/( pr.t - 1 + 0.01);
-	//epsilon = 1.5; //TODO DELETE
+	pr.t = 2;
+	epsilon = (4*(pr.t +1))/( pr.t - 1);
+	//epsilon = 1.05; //TODO DELETE
 	cout<<epsilon <<": epsilon"<<endl;
 	constructWSPD(&quadtree,&quadtree,epsilon);
 
 
-	writeFile(filename);
+	writeFile(filename, depth);
 
-	vector<pair<int,coord>> allPointList;
-	map<coord, int> point_map;
-	for(size_t i =0;i<pr.points.size();i++){
-		point_map[pr.points.at(i)] = i;
-	}
-	for(size_t i =0;i<pr.obstacle_vert.size();i++){
-		point_map[pr.points.at(i)] = i;
-	}
-
-	cout<<"list/map gen"<<endl;
-
-	cout<< "Number of well-seperated paires created = "<<pair_queue.size()<<endl;
-	vector<pair<int,int>> pairs;
-	for(size_t i=0;i<pair_queue.size();i++){
-		vector<coord> a = getAllPoints(pair_queue.at(i).first);
-		vector<coord> b = getAllPoints(pair_queue.at(i).second);
-
-		int rand_a = std::rand() % ( a.size());
-		int rand_b = std::rand() % ( b.size());
-
-		int key_a = point_map[a.at(rand_a)];
-		int key_b = point_map[b.at(rand_b)];
-		pairs.push_back(make_pair(key_a,key_b));
-	}
-
-	for(size_t k =0;k<pairs.size();k++){
-		cout<<pairs.at(k).first<<","<<pairs.at(k).second<<endl;
-	}
 
 
 
