@@ -46,14 +46,33 @@ struct edge {
 	}
 };
 
+double euclidean_distance(coord p1, coord p2) {
+	return sqrt(pow(double(p1.first-p2.first),2)+pow(double(p1.second-p2.second),2));
+}
+
+coord getpoint(int i) {
+	if(i<pr.n) {
+		return pr.points[i];
+	} else if(i<(pr.n+pr.nobs)){
+		return pr.obstacle_vert[i-pr.n];
+	} else {
+		return additional_points[i-pr.n-pr.nobs];
+	}
+}
+
 struct event {
 	int p;
 	double angle;
 	bool starting;
 	edge segment;
+	//this is for when points have the same angle
+	int p_view;
 
 	bool operator < (const event& evt) const {
-			return(angle<evt.angle);
+		if(angle==evt.angle) {
+			return (euclidean_distance(getpoint(p),getpoint(p_view))<euclidean_distance(getpoint(evt.p),getpoint(evt.p_view)));
+		}
+		return(angle<evt.angle);
 	}
 };
 
@@ -97,20 +116,6 @@ void readFile(char filename[]) {
 	prbl.obstacle_vert = obstacle_vert;
 	file.close();
 	pr = prbl;
-}
-
-double euclidean_distance(coord p1, coord p2) {
-	return sqrt(pow(double(p1.first-p2.first),2)+pow(double(p1.second-p2.second),2));
-}
-
-coord getpoint(int i) {
-	if(i<pr.n) {
-		return pr.points[i];
-	} else if(i<(pr.n+pr.nobs)){
-		return pr.obstacle_vert[i-pr.n];
-	} else {
-		return additional_points[i-pr.n-pr.nobs];
-	}
 }
 
 //tested
@@ -228,6 +233,8 @@ void insert_segment_events(vector<event>& events,int i, int p, int obst1, int ob
 	evt2.p = obst2;
 	evt1.angle = compute_angle(infinity_point,getpoint(p),getpoint(obst1));
 	evt2.angle = compute_angle(infinity_point,getpoint(p),getpoint(obst2));
+	evt1.p_view = p;
+	evt2.p_view = p;
 	if(edges_intersect(getpoint(p),infinity_point,getpoint(obst1),getpoint(obst2))) {
 		if(evt1.angle<evt2.angle) {
 			evt1.starting=false;
