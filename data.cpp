@@ -38,6 +38,13 @@ void datagene (int N_par, int n_par) {
 //int main() {
     //int N_par = 300;
     //int n_par = 100;
+    
+    if (N_par < 4*n_par) {
+        ofstream myfile("data.txt");
+        //myfile.open("data.txt");
+        myfile << "Error parameter, N should be 4 times bigger than n" <<"\n";
+    }
+    
     int N = N_par; // size of the bounding box
     int width = n_par;// size of the bouding box for obstacle
     int n = 0; // the number of vertices
