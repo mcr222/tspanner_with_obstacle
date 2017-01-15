@@ -11,20 +11,20 @@ with open('output.txt') as f:
         line=next(f)
         points.append([int(x) for x in line.split()])
     
-    print points
+    #print points
     
     obst_vert=[]
     for i in range(nobs):
         line=next(f)
         obst_vert.append([int(x) for x in line.split()])
-    print obst_vert
+    #print obst_vert
              
     visibility = []
     for i in range(n+nobs):
         line=next(f)
         visibility.append([int(x) for x in line.split()])
         
-    print visibility
+   # print visibility
     
     print "dilation: " + next(f)
     print "size: "+ next(f)
