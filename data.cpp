@@ -12,20 +12,12 @@
 #include <ctime>
 #include <algorithm>
 #include <vector>
+#include <fstream>
 
 
 #define PI 3.1415926
 
 using namespace std;
-
-
-
-int N = 300; // size of the bounding box
-int width = 100;// size of the bouding box for obstacle
-int n = 0; // the number of vertices
-int n_obs = 0;// the number of vertices for the obstacle
-float temp = 0;
-bool Inside = 0;
 
 
 float calcu_angle(int x1, int y1, int x_center, int y_center){
@@ -44,40 +36,58 @@ float calcu_angle(int x1, int y1, int x_center, int y_center){
     }
     return angle;
 }
-// detect intersection of an obstacle edge and a horizontal line
-//bool intersect(int x1, int y1, int x2, int y2, int x, int y) {
-//    return 1;
-//}
 
-int main(int argc, const char * argv[]) {
-    
+
+
+//data generation function, two parameters, N_par is the number of random points and n_par is the number of obstacle vertices
+// void datagene (int N_par, int n_par) {
+int main() {
+    int N_par = 300;
+    int n_par = 100;
+    int N = N_par; // size of the bounding box
+    int width = n_par;// size of the bouding box for obstacle
+    int n = 0; // the number of vertices
+    int n_obs = 0;// the number of vertices for the obstacle%
+    int feasible_small = 0; // make sure obstacle origin is within the data points
+    int feasible_big = 0;
+
+
+
+    //generate the obstacle vertices number and random points number
     srand((unsigned)time(0));
     n = 30 + rand() % (N - 1);
-    
+    n_obs = 3 + rand() % (width/5);
     
     //generate random points, the first point (x_coord[0],y_coord[0]) is for obstacle center
     int x_coord [n];
     int y_coord [n];
+    int obs_x_coord[n_obs];
+    int obs_y_coord[n_obs];
+    
+    
     for (int j = 1; j < n; j++){
         x_coord[j] = (rand() % (N - 1)) + 1;
         y_coord[j] = (rand() % (N - 1)) + 1;
     }
     
-    //generate obstacle center
-    //bug detected
-    x_coord[0] = width + rand() % (N - 2*width);
-    y_coord[0] = width + rand() % (N - 2*width);
-    
-    //generate the obstacle vertices number
-    n_obs = 3 + rand() % (width/5);
-    
-    //generate the obstacle points
-    int obs_x_coord[n_obs];
-    int obs_y_coord[n_obs];
-    for (int i = 0; i < n_obs; i++) {
-        obs_x_coord[i] = x_coord[0] - width + rand() % (2 * width);
-        obs_y_coord[i] = y_coord[0] - width + rand() % (2 * width);
+    //generate obstalce vertices points, with obstacle origin is not smallest or biggest
+    while(!(feasible_small*feasible_big)) {
+        x_coord[0] = width + rand() % (N - 2*width);
+        y_coord[0] = width + rand() % (N - 2*width);
+        
+        for (int i = 0; i < n_obs; i++) {
+            obs_x_coord[i] = x_coord[0] - width + rand() % (2 * width);
+            obs_y_coord[i] = y_coord[0] - width + rand() % (2 * width);
+            if (obs_x_coord[i] > x_coord[0]) {
+                feasible_big = 1; // at least one bigger than origin
+            }
+            if (obs_x_coord[i] < x_coord[0]) {
+                feasible_small = 1; // at least one smaller than origin
+            }
+        }
+        
     }
+    
     
     //build the obstacle
     float angle_array [n_obs];
@@ -90,7 +100,7 @@ int main(int argc, const char * argv[]) {
         //cout << "\n";
         
     }
-    // sort the array
+    //sort the array
     /*for (int i = 0; i < n_obs; i++){
         for (int j =0; j < n_obs-1; j++){
             if (angle_array[j] > angle_array[j+1]) {
@@ -124,7 +134,6 @@ int main(int argc, const char * argv[]) {
     obs_y_polygon[n_obs] = obs_y_polygon[0];
     
     /*
-    //detect repeated points and retain only one.
     for(int i = 0; i < n_obs; i++) {
         //cout << angle_array[i] << " ";
         //cout << index_array[i] << "\n";
@@ -136,24 +145,63 @@ int main(int argc, const char * argv[]) {
     for (int i = 0; i <= n_obs; i++) {
         cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
     }
-     
-    //remove all points within the square box that contains the obstacle
-    for (int i = 1; i < n; i++) {
-        if ((x_coord[i] >= x_coord[0]-width && x_coord[i] <= x_coord[0]+width)&&(y_coord[i] >= y_coord[0]-width && y_coord[i]<= y_coord[0]+width)) {
-            continue;
-        }
-        cout << x_coord[i] << " " << y_coord[i] << "\n";
-    }
-     
-     
     */
     
-    //or we could be more specific, we remove all points within the obstacle
-    // We have a polygon, and we have a query point, determine how many edges of the polygon intersect with the ray starting from query point upward.
-    //segment tree with range tree
-    for (int i = 0; i <= n_obs; i++) {
-        cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
+    
+    //remove all duplicates for data points
+    int x_coord_temp[n];
+    int y_coord_temp[n];
+    for (int i=0; i<n; i++) {
+        x_coord_temp[i] = x_coord[i];
+        y_coord_temp[i] = y_coord[i];
     }
+    for (int i=1; i<n; i++) {
+        for (int j=i+1; j<n;j++) {
+            if(x_coord[i]==x_coord_temp[j] && y_coord[i]==y_coord_temp[j]) {
+                x_coord_temp[j] = N+1;
+                y_coord_temp[j] = N+1;
+            }
+        }
+    }
+    int count = 1;
+    for (int i=1; i<n; i++) {
+        if ((x_coord_temp[i] <= N) && (y_coord_temp[i] <= N)) {
+            x_coord[count] = x_coord_temp[i];
+            y_coord[count] = y_coord_temp[i];
+            count += 1;
+        }
+    }
+    //cout << "number of duplicates" << n-count << "\n";
+    n = count;//non-unique points
+    
+    //remove duplicates for obstacle points
+    int obs_x_polygon_temp[n_obs];
+    int obs_y_polygon_temp[n_obs];
+    for (int i=0; i<n_obs; i++) {
+        obs_x_polygon_temp[i] = obs_x_polygon[i];
+        obs_y_polygon_temp[i] = obs_y_polygon[i];
+    }
+    for (int i=0; i<n_obs; i++) {
+        for (int j=i+1; j<n_obs; j++) {
+            if((obs_x_polygon[i] == obs_x_polygon_temp[j]) &&(obs_y_polygon[i] == obs_y_polygon_temp[j])) {
+                obs_x_polygon_temp[j] = N+1;
+                obs_y_polygon_temp[j] = N+1;
+            }
+        }
+    }
+    count = 0;
+    for (int i=0; i<n_obs; i++) {
+        if (obs_x_polygon_temp[i] != N+1) {
+            obs_x_polygon[count] = obs_x_polygon_temp[i];
+            obs_y_polygon[count] = obs_y_polygon_temp[i];
+            count += 1;
+        }
+    }
+    //cout << "number of duplicates" << n_obs-count << "\n";
+    n_obs = count;
+    
+    
+   
     
     //raycasting algorithm
     int constant[n_obs];
@@ -190,24 +238,38 @@ int main(int argc, const char * argv[]) {
         }
         //cout << Inside[temp] << "\n";
     }
-    /*
-    bool pointInPolygon(int x, int y) {
-        int   i, j=n_obs-1 ;
-        for (i=0; i<n_obs; i++) {
-            if ((obs_y_coord[i]< y && obs_y_coord[j]>=y   ||  obs_y_coord[j]< y && obs_y_coord[i]>=y)) {
-                Inside^=(y*multiple[i]+constant[i]<x);
-            }
-            j=i;
-        }
-        return Inside;
-    }
-     */
-    
+    count = 1;
     for (int i=0;i<n;i++) {
         if (Inside[i] == 0) {
+            count += 1;
             cout << x_coord[i] << " " << y_coord[i] << "\n";
         }
     }
+    for (int i = 0; i <= n_obs; i++) {
+        cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
+    }
+    
+    
+    //write text file
+    ofstream myfile("data.txt");
+    //myfile.open("data.txt");
+    myfile << count-1 <<"\n";
+    myfile << n_obs <<"\n";
+    myfile << 3 << " " << 2 <<"\n";
+    for (int i=0;i<n;i++) {
+        if (Inside[i] == 0) {
+            myfile << x_coord[i] << " " << y_coord[i] <<"\n";
+        }
+    }
+    for (int i=n_obs; i>0;i--){
+        myfile << obs_x_polygon[i] << " " <<obs_y_polygon[i] <<"\n";
+    }
+    
+    myfile.close();
+    cout<<"A message"<<"\n";
     //cout << n_obs << " " << x_coord[0] << " " << y_coord[0] <<";" << "\n";
     return 0;
 }
+
+
+

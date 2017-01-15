@@ -815,6 +815,49 @@ vector<coord> sort_y(vector<coord> points){
 
 vector<coord> getHyperRectangle(vector<coord> points){
 
+	//corner case for two axis parallel points
+		if(points.size()==2){
+			sort(points.begin(), points.end());
+			if(points.at(0).first == points.at(1).first){
+				// points are y parallel
+				coord endpoint_lb = make_pair(points.at(0).first, points.at(0).second);
+				coord endpoint_lt = make_pair(points.at(1).first, points.at(1).second);
+				coord endpoint_rb = make_pair(points.at(0).first + 1, points.at(0).second + 1);
+				coord endpoint_rt = make_pair(points.at(1).first +1,points.at(0).second +1);
+				// bounding box vertices stored
+					vector<coord> hyper_rectangle;
+					hyper_rectangle.push_back(endpoint_lb);
+					hyper_rectangle.push_back(endpoint_lt);
+					hyper_rectangle.push_back(endpoint_rt);
+					hyper_rectangle.push_back(endpoint_rb);
+
+					//point of intersection of diagonals
+					coord intersection = make_pair((endpoint_lb.first + endpoint_rt.first)/2 ,(endpoint_lb.second + endpoint_rt.second)/2);
+					hyper_rectangle.push_back(intersection);
+				return hyper_rectangle;
+
+			}
+			if(points.at(0).second == points.at(1).second){
+				// points are x parallel
+				coord endpoint_lb = make_pair(points.at(0).first, points.at(0).second);
+				coord endpoint_lt = make_pair(points.at(0).first +1, points.at(0).second+1);
+				coord endpoint_rb = make_pair(points.at(1).first , points.at(1).second );
+				coord endpoint_rt = make_pair(points.at(1).first+1,points.at(1).second +1);
+				// bounding box vertices stored
+					vector<coord> hyper_rectangle;
+					hyper_rectangle.push_back(endpoint_lb);
+					hyper_rectangle.push_back(endpoint_lt);
+					hyper_rectangle.push_back(endpoint_rt);
+					hyper_rectangle.push_back(endpoint_rb);
+
+					//point of intersection of diagonals
+					coord intersection = make_pair((endpoint_lb.first + endpoint_rt.first)/2 ,(endpoint_lb.second + endpoint_rt.second)/2);
+					hyper_rectangle.push_back(intersection);
+				return hyper_rectangle;
+
+			}
+		}
+
 	// constructs hyper rectangle and returns points splitted in two vectors.
 	vector<coord>  x_sorted_points = sort_x(points);
 	vector<coord>  y_sorted_points = sort_y(points);
