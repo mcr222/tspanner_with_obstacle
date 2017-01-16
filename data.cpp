@@ -44,10 +44,10 @@ void datagene (int N_par, int n_par) {
     int n_obs = n_par;// the number of vertices for the obstacles
     int count = 0;
     
-    int feasible_small_x = 0; // make sure obstacle origin is within the data points
-    int feasible_big_x = 0;
-    int feasible_small_y = 0;
-    int feasible_big_y = 0;
+    //int feasible_small_x = 0; // make sure obstacle origin is within the data points
+    //int feasible_big_x = 0;
+    //int feasible_small_y = 0;
+    //int feasible_big_y = 0;
     
     int x_coord[n];
     int y_coord[n];
@@ -61,14 +61,15 @@ void datagene (int N_par, int n_par) {
     //n_obs = 3 + rand() % (width/5);
     
     //generate obstalce vertices points, with obstacle origin is not smallest or biggest
-    while(!(feasible_small_x*feasible_big_x*feasible_big_y*feasible_small_y)) {
+    //while(!(feasible_small_x*feasible_big_x*feasible_big_y*feasible_small_y)) {
         
-        x_coord[0] = n + rand() % (2*n);
-        y_coord[0] = n + rand() % (2*n);
+        //x_coord[0] = n + rand() % (2*n);
+        //y_coord[0] = n + rand() % (2*n);
         
         for (int i = 0; i < n_obs; i++) {
             obs_x_coord[i] = 1.5*n + rand() % (2*n);
             obs_y_coord[i] = 1.5*n + rand() % (2*n);
+            /*
             if (obs_x_coord[i] > x_coord[0]) {
                 feasible_big_x = 1; // at least one bigger than origin
             }
@@ -82,10 +83,13 @@ void datagene (int N_par, int n_par) {
             if (obs_y_coord[i] < y_coord[0]) {
                 feasible_small_y = 1; // at least one smaller than origin
             }
-             
+             */
+            
         }
-        
-    }//end while
+    x_coord[0] = (obs_x_coord[0] + obs_x_coord[n_obs-1])/2;
+    y_coord[0] = (obs_y_coord[0] + obs_y_coord[n_obs-1])/2;
+    
+   // }//end while
     
     
     //build the obstacle
@@ -96,7 +100,7 @@ void datagene (int N_par, int n_par) {
         angle_array[i] = calcu_angle(obs_x_coord[i], obs_y_coord[i], x_coord[0], y_coord[0]);
         temp_array[i] = angle_array[i];
         //cout << angle_array[i] << "\n";
-        //cout << "\n";
+        //cout << x_coord[0] << " " << y_coord[0]<<"\n";
         
     }
     
@@ -114,7 +118,7 @@ void datagene (int N_par, int n_par) {
         }
     }
     for (int i=0; i<n_obs; i++) {
-        //cout << angle_array[i]<<" "<< index_array[i] <<"\n";
+       // cout << angle_array[i]<<" "<< index_array[i] <<"\n";
     }
     
     //add starting point to the end, to make a polygon
@@ -129,14 +133,14 @@ void datagene (int N_par, int n_par) {
     obs_y_polygon[n_obs] = obs_y_polygon[0];
     
     //remove duplicates for obstacle vertices
-    int obs_x_polygon_temp[n_obs];
-    int obs_y_polygon_temp[n_obs];
-    for (int i=0; i<n_obs; i++) {
+    int obs_x_polygon_temp[n_obs+1];
+    int obs_y_polygon_temp[n_obs+1];
+    for (int i=0; i<=n_obs; i++) {
         obs_x_polygon_temp[i] = obs_x_polygon[i];
         obs_y_polygon_temp[i] = obs_y_polygon[i];
     }
     for (int i=0; i<n_obs; i++) {
-        for (int j=i+1; j<n_obs; j++) {
+        for (int j=i+1; j<=n_obs; j++) {
             if((obs_x_polygon[i] == obs_x_polygon_temp[j]) &&(obs_y_polygon[i] == obs_y_polygon_temp[j])) {
                 obs_x_polygon_temp[j] = -1;
                 obs_y_polygon_temp[j] = -1;
@@ -145,7 +149,7 @@ void datagene (int N_par, int n_par) {
     }
     count = 0;
     for (int i=0; i<n_obs; i++) {
-        if (obs_x_polygon_temp[i] >= 0) {
+        if (obs_x_polygon_temp[i] > 0) {
             obs_x_polygon[count] = obs_x_polygon_temp[i];
             obs_y_polygon[count] = obs_y_polygon_temp[i];
             count += 1;
@@ -157,7 +161,7 @@ void datagene (int N_par, int n_par) {
         //cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
     }
     
-    //calculat the equation for edge, only count edges
+    //calculat the equation for edge, only count number of edges
     n_obs = count;
     int constant[n_obs];
     float multiple[n_obs];
@@ -182,7 +186,8 @@ void datagene (int N_par, int n_par) {
       //  Inside[i]=1;
     //}
     int j = 0;
-    while(count != n) {
+    //float before = 0;
+    while(count <= n) {
         bool inside = false;
         j = count;
         x_coord[j] = (rand() % (N - 1)) + 1;
@@ -191,18 +196,25 @@ void datagene (int N_par, int n_par) {
         for (int i=0; i<n_obs; i++) {
             if (((obs_y_polygon[i]< y_coord[j] && obs_y_polygon[temp]>=y_coord[j]) ||
                  (obs_y_polygon[temp]< y_coord[j] && obs_y_polygon[i]>=y_coord[j]))) {
+                
                 inside^=(float)1.00000*(y_coord[j]*multiple[i]+constant[i])<(float)(1.00*x_coord[j]);
+                for (int j =0; j< n_obs; j++){
+                    if (!inside && (y_coord[i]==obs_y_polygon[j])) {
+                        inside ^= inside;
+                    }
+                }
             }
             temp = i;
         }
+        
         if (!inside) {
-            //cout << x_coord[j] << " " << y_coord[j] << "\n";
+            //cout << x_coord[j] << " " << y_coord[j] <<"\n";
             count += 1;
         }
     }
     
     
-    
+    //cout << count << "\n";
     
     /*
      
@@ -277,7 +289,7 @@ void datagene (int N_par, int n_par) {
     for (int i=0;i<n;i++) {
         myfile << x_coord[i] << " " << y_coord[i] <<"\n";
     }
-    for (int i=n_obs; i>0;i--){
+    for (int i=n_obs-1; i>=0;i--){
         myfile << obs_x_polygon[i] << " " <<obs_y_polygon[i] <<"\n";
     }
     
