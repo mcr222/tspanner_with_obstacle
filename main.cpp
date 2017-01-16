@@ -121,9 +121,9 @@ void readFile(string filename) {
 
 //tested
 double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<int>& path) {
-	vector<double> distances(pr.n+pr.nobs,-1);
-	vector<int> previous(pr.n+pr.nobs,-1);
-	vector<bool> visited(pr.n+pr.nobs,false);
+	vector<double> distances(pr.n+pr.nobs+2,-1);
+	vector<int> previous(pr.n+pr.nobs+2,-1);
+	vector<bool> visited(pr.n+pr.nobs+2,false);
 	priority_queue<pair<int,int>,vector<pair<int,int>>,CompareDist> pq;
 	//priority queue has the pair: priority,point_number
 	pq.push(make_pair(0,source));
@@ -131,6 +131,7 @@ double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<in
 	pair<int,int> prior_point;
 	set<int> neighbors;
 	double alt_dist;
+
 	while(!pq.empty()){
 		prior_point = pq.top();
 		pq.pop();
@@ -156,7 +157,6 @@ double dijkstra_shortest_path(graph& tspanner, int source, int target, vector<in
 			}
 		}
 	}
-
 	return distances[target];
 }
 
@@ -316,7 +316,7 @@ coord find_intersection_lines(coord p1, coord p2, coord v1, coord v2) {
 bool positive_intersection(coord p, coord p1, coord inters) {
 	coord v = make_pair(p1.first-p.first,p1.second-p.second);
 	coord vinters = make_pair(inters.first-p.first,inters.second-p.second);
-	if(p.first==1042 && p.second==1462) {
+	if(false && p.first==1042 && p.second==1462) {
 		cout << inters.first << " " << inters.second << endl;
 		cout << p.first << " " << p.second << endl;
 		cout << p1.first << " " << p1.second << endl;
@@ -325,9 +325,40 @@ bool positive_intersection(coord p, coord p1, coord inters) {
 		cout << v.first*vinters.first+v.second*vinters.second << endl;
 	}
 
-	return same_direction_vectors(v, vinters);
+	return v.first*vinters.first+v.second*vinters.second>0;
 }
 
+//tested
+bool point_inside_obstacle(coord p) {
+	//cout << "point inside: " << p.first << " " << p.second << endl;
+	//TODO: assumes general position of points returns false if point on edge
+	//return false if point on edge because then (as points can't be inside obstacle)
+	//then points will be in different "sides" of the obstacle thus not well separated probably
+	//return true;
+	coord infinity_point=make_pair(0,100000);
+	int inters=0;
+	coord intersection;
+	if(edges_intersect(p,infinity_point,getpoint(pr.n+pr.nobs-1),getpoint(pr.n))) {
+		if(!point_in_segment(p, getpoint(pr.n+pr.nobs-1),getpoint(pr.n))) {
+			++inters;
+		} else {
+			return true;
+		}
+	}
+	for(int i=1;i<pr.nobs;++i) {
+		if(edges_intersect(p,infinity_point,getpoint(pr.n+i-1),getpoint(pr.n+i))) {
+			if(!point_in_segment(p, getpoint(pr.n+pr.nobs-1),getpoint(pr.n))) {
+				++inters;
+			} else {
+				return true;
+			}
+		}
+	}
+	if(inters%2==0) {
+		return false;
+	}
+	return true;
+}
 
 struct status_segment {
 	int p1;
@@ -341,7 +372,7 @@ struct status_segment {
 	bool operator < (const status_segment seg) const {
 		//as they are status segments, they will overlap from the points p view
 		//coord intersection = find_intersection(getpoint(p),infinity_point,getpoint(p1),getpoint(p2));
-		int k=20;
+		int k=-20;
 		if((seg.p1==p1 && seg.p2==p2)||
 				(seg.p1==p2 && seg.p2==p1)) {
 			//cout << "first false" << endl;
@@ -523,7 +554,6 @@ void visibility_point(graph& visibility, int p) {
 		cout << "point: " << p << endl;
 		cout << "point: " << getpoint(p).first << " "<< getpoint(p).second << endl;
 	}
-	//TODO: this isn't to careful with parallel lines
 	vector<event> events(2*pr.nobs);
 	coord infinity_point(0,100000);
 	insert_segment_events(events,0, p, pr.n+pr.nobs-1, pr.n,infinity_point);
@@ -603,13 +633,12 @@ void print_vector(vector<int> vec) {
 }
 
 void visibility_point_obstacle(graph& visibility, int p, int previous, int next) {
-	int k = 20;
+	int k = -20;
 	if(p==k) {
 		cout << "obstacle point: " << p << endl;
 		cout << "obstacle point: " << getpoint(p).first << " " << getpoint(p).second << endl;
 		cout << "previous: " << previous << " next: " << next << endl;
 	}
-	//TODO: this isn't to careful with parallel lines
 	vector<event> events(2*pr.nobs);
 	double max_angle =compute_angle(getpoint(previous),getpoint(p),getpoint(next));
 	if(p==k) {
@@ -693,7 +722,6 @@ bool first = true;
 graph obstacle_visibility;
 
 graph insert_obstacle_edges() {
-	//TODO: check this
 	graph vis(pr.n+pr.nobs+2, set<int>());
 	if(first) {
 		graph visibility(pr.n+pr.nobs, set<int>());
@@ -779,6 +807,9 @@ void greedy_tspanner(graph& tspanner, vector<edge> edges){
 	vector<int> shortest_path;
 	vector<int> unused;
 	for(int i=0;i<edges.size();++i) {
+//		if(i%100==0) {
+//			cout << i << endl;
+//		}
 		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2,unused);
 		//cout << dist/euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2)) << endl;
 		//dist>pr.t*euclidean_distance(getpoint(edges[i].p1),getpoint(edges[i].p2))
@@ -834,7 +865,12 @@ result computeResultParameters(graph& tspanner, vector<edge>& edges) {
 	vector<int> unused;
 	for(int i=0;i<edges.size();++i) {
 		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2,unused);
+
 		dil=dist/edges[i].dist;
+		cout << edges[i].p1 << " " << edges[i].p2 << endl;
+		cout <<"p1 "<< getpoint(edges[i].p1).first << " " << getpoint(edges[i].p1).second << endl;
+		cout <<"p2 " << getpoint(edges[i].p2).first<< " " << getpoint(edges[i].p2).second << endl;
+		cout << dil<< endl;
 		if(dil>dilation_max) {
 			dilation_max=dil;
 		}
@@ -935,7 +971,7 @@ Quadtree::~Quadtree()
 vector<pair<Quadtree*,Quadtree*>> well_separated_pairs; // queue storing the well-separated pairs
 vector<pair<Quadtree*,Quadtree*>> checkDuplicate; // vector storing cells for which wspd is already found
 
-float epsilon; // to calculate 1/epsilion well-seperated pair
+float s; // to calculate 1/epsilion well-seperated pair
 
 double area(vector<coord> boundary){
 	return euclidean_distance(boundary.at(0),boundary.at(1))*euclidean_distance(boundary.at(0),boundary.at(3));
@@ -981,7 +1017,7 @@ vector<coord> getHyperRectangle(vector<coord> points){
 			coord endpoint_lb = make_pair(points.at(0).first, points.at(0).second);
 			coord endpoint_lt = make_pair(points.at(1).first, points.at(1).second);
 			coord endpoint_rb = make_pair(points.at(0).first + 1, points.at(0).second);
-			coord endpoint_rt = make_pair(points.at(1).first +1,points.at(1).second);
+			coord endpoint_rt = make_pair(points.at(1).first +1,points.at(0).second);
 			// bounding box vertices stored
 				vector<coord> hyper_rectangle;
 				hyper_rectangle.push_back(endpoint_lb);
@@ -1375,18 +1411,27 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float s){
 
 		//double dist = euclidean_distance(cell1->boundary.at(4), cell2->boundary.at(4));
 		double dist;
-			additional_points[0] = cell1->boundary.at(4);
-			int i=pr.n+pr.nobs;
-			additional_points[1] = cell2->boundary.at(4);
-			int j=pr.n+pr.nobs+1;
-		//		dist = euclidean_distance(getMidPoint(farthest1.at(0),farthest1.at(1)), getMidPoint(farthest2.at(0),farthest2.at(1)));
-			if(edge_intersects_obstacle(i,j)) {
-				graph vis_gr = visibility_graph(i,j);
-				vector<int> path_unused;
-				dist = dijkstra_shortest_path(vis_gr,i,j,path_unused);
-			} else {
-				dist = euclidean_distance(cell1->boundary.at(4), cell2->boundary.at(4));
-			}
+		additional_points[0] = cell1->boundary.at(4);
+		int i=pr.n+pr.nobs;
+		additional_points[1] = cell2->boundary.at(4);
+		int j=pr.n+pr.nobs+1;
+		//cout << "cell boundary"<< endl;
+		//cout << cell1->boundary.at(4).first << " " << cell1->boundary.at(4).second << endl;
+		//cout << cell2->boundary.at(4).first << " " << cell2->boundary.at(4).second << endl;
+		if(point_inside_obstacle(additional_points[0]) || point_inside_obstacle(additional_points[1])) {
+			//pairs are not well separated when center point of any of the pairs is in the obstacle
+			dist=0;
+		}else if(edge_intersects_obstacle(i,j)) {
+			graph vis_gr = visibility_graph(i,j);
+			//result res;
+			//donothing(vis_gr);
+			//system( "python plot.py" );
+
+			vector<int> path_unused;
+			dist = dijkstra_shortest_path(vis_gr,i,j,path_unused);
+		} else {
+			dist = euclidean_distance(cell1->boundary.at(4), cell2->boundary.at(4));
+		}
 
 
 		// if cell2 is a leaf of cell1, return;
@@ -1409,7 +1454,7 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float s){
 		 cout<<".....cell2"<<endl;
 		 printContainedPoints(cell2);
 		 cout<<"CHECK IF WS"<<endl;*/
-		if(dist >= s * (largerDiameter/2) ){
+		if(dist-cellDiameter1/2-cellDiameter2/2 >= s * (largerDiameter/2) ){
 
 			 // If leaf cells, and equal, remove them
 			 bool equalLeaves = false;
@@ -1541,32 +1586,7 @@ void build_tspanner(graph& tspanner) {
 
 }
 
-void execute_greedy(char filename[]){
-
-}
-
-void execute_WSPD(char filename[]){
-
-}
-
-int main() {
-
-	//datagene(500,100);
-
-	/*cout << positive_intersection(make_pair(0,0), make_pair(1,1), make_pair(2,2)) << endl;
-	cout << positive_intersection(make_pair(0,0), make_pair(1,1), make_pair(-1,-1)) << endl;
-	cout << positive_intersection(make_pair(1,1), make_pair(1,50), make_pair(1,60)) << endl;
-	cout << positive_intersection(make_pair(1,1), make_pair(1,2), make_pair(1,-3)) << endl;*/
-
-	string file="Spiral2";
-	cout << "File name:" << endl;
-	//cin >> file;
-	//char filename[] = "data.txt";
-
-	string filename = "Data_examples/"+file+".txt";
-	cout << filename << endl;
-	readFile(filename);
-
+void execute_greedy(string filename){
 	graph tspanner(pr.n+pr.nobs, set<int>());
 
 	clock_t tStart = clock();
@@ -1582,30 +1602,56 @@ int main() {
 	writeFile(filename, tspanner, res);
 
 	system( "python plot.py" );
-	writeFile(filename, obstacle_visibility, res);
+
+
+	//writeFile(filename, obstacle_visibility, res);
+	//system( "python plot_vis.py" );
+
+}
+
+void execute_WSPD(string filename){
+	vector<coord> outerBoundary = getHyperRectangle(pr.points);
+	Quadtree quadtree = Quadtree(outerBoundary);
+	constructQuadTree(&quadtree,pr.points);
+
+	//printQuadTree(&quadtree);
+
+	s = (4*(pr.t +1))/( pr.t - 1);
+	cout<<"s: "<<s <<endl;
+	clock_t tStart = clock();
+	constructWSPD(&quadtree,&quadtree,s);
+	graph tspanner(pr.n+pr.nobs, set<int>());
+	build_tspanner(tspanner);
+	double execution_timer = (clock()-tStart)/(double)(CLOCKS_PER_SEC/1000);
+	vector<edge> all_edges_sorted = find_all_edges();
+	result res = computeResultParameters(tspanner,all_edges_sorted);
+	res.execution_time = execution_timer;
+	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
+
+	writeFile(filename, tspanner, res);
 	system( "python plot.py" );
+}
 
+int main() {
 
-//	vector<coord> outerBoundary = getHyperRectangle(pr.points);
-//	Quadtree quadtree = Quadtree(outerBoundary);
-//	constructQuadTree(&quadtree,pr.points);
-//
-//	//printQuadTree(&quadtree);
-//
-//	pr.t = 2;
-//	epsilon = (4*(pr.t +1))/( pr.t - 1 + 0.01);
-//	cout<<epsilon <<": epsilon"<<endl;
-//
-//	constructWSPD(&quadtree,&quadtree,epsilon);
-//
-//	build_tspanner(tspanner);
-//
-//	vector<edge> all_edges_sorted = find_all_edges();
-//	result res = computeResultParameters(tspanner,all_edges_sorted);
-//
-//	writeFile(filename, tspanner, res);
-//
-//	writeFile(filename,0);
+	//datagene(50,10);
+
+	string file="data";
+	cout << "File name:" << endl;
+	cin >> file;
+	//char filename[] = "data.txt";
+
+	string filename = "Data_examples/"+file+".txt";
+	cout << filename << endl;
+	readFile(filename);
+
+//	cout << point_inside_obstacle(make_pair(2,3))<<endl;
+//	cout << point_inside_obstacle(make_pair(3,5))<<endl;
+//	cout << point_inside_obstacle(make_pair(9,9))<<endl;
+//	cout << point_inside_obstacle(make_pair(0,5))<<endl;
+
+	execute_greedy(filename);
+	execute_WSPD(filename);
 
 
 }
