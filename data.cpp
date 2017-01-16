@@ -22,6 +22,9 @@ float calcu_angle(int x1, int y1, int x_center, int y_center){
     if (y < 0) {
         angle = 360.0 + angle;
     }
+    else if (y>=0) {
+        angle = 0.0 + angle;
+    }
     return angle;
 }
 
@@ -72,12 +75,14 @@ void datagene (int N_par, int n_par) {
             if (obs_x_coord[i] < x_coord[0]) {
                 feasible_small_x = 1; // at least one smaller than origin
             }
+            
             if (obs_y_coord[i] > y_coord[0]) {
                 feasible_big_y = 1; // at least one bigger than origin
             }
             if (obs_y_coord[i] < y_coord[0]) {
                 feasible_small_y = 1; // at least one smaller than origin
             }
+             
         }
         
     }//end while
@@ -90,12 +95,14 @@ void datagene (int N_par, int n_par) {
         //cout << "(" << obs_x_coord[i] << "," << obs_y_coord[i] << ")" << "\n";
         angle_array[i] = calcu_angle(obs_x_coord[i], obs_y_coord[i], x_coord[0], y_coord[0]);
         temp_array[i] = angle_array[i];
-        //cout << angle_array[i];
+        //cout << angle_array[i] << "\n";
         //cout << "\n";
         
     }
     
     sort(angle_array,angle_array + n_obs);
+    
+ 
     
     //find the index
     int index_array [n_obs];
@@ -105,6 +112,9 @@ void datagene (int N_par, int n_par) {
                 index_array[i] = j;
             }
         }
+    }
+    for (int i=0; i<n_obs; i++) {
+        //cout << angle_array[i]<<" "<< index_array[i] <<"\n";
     }
     
     //add starting point to the end, to make a polygon
@@ -144,10 +154,10 @@ void datagene (int N_par, int n_par) {
     obs_x_polygon[count] = obs_x_polygon[0];
     obs_y_polygon[count] = obs_y_polygon[0];
     for (int i = 0; i <= count; i++) {
-        cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
+        //cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
     }
     
-    //calculat the equation for edge, only count-1 edges
+    //calculat the equation for edge, only count edges
     n_obs = count;
     int constant[n_obs];
     float multiple[n_obs];
@@ -186,7 +196,7 @@ void datagene (int N_par, int n_par) {
             temp = i;
         }
         if (!inside) {
-            cout << x_coord[j] << " " << y_coord[j] << "\n";
+            //cout << x_coord[j] << " " << y_coord[j] << "\n";
             count += 1;
         }
     }
