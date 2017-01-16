@@ -1636,9 +1636,9 @@ int main() {
 
 	//datagene(50,10);
 
-	string file="data";
+	string file="g";
 	cout << "File name:" << endl;
-	cin >> file;
+	//cin >> file;
 	//char filename[] = "data.txt";
 
 	string filename = "Data_examples/"+file+".txt";
@@ -1650,7 +1650,7 @@ int main() {
 //	cout << point_inside_obstacle(make_pair(9,9))<<endl;
 //	cout << point_inside_obstacle(make_pair(0,5))<<endl;
 
-	execute_greedy(filename);
+	//execute_greedy(filename);
 	execute_WSPD(filename);
 
 
