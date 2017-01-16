@@ -1017,7 +1017,7 @@ vector<coord> getHyperRectangle(vector<coord> points){
 			coord endpoint_lb = make_pair(points.at(0).first, points.at(0).second);
 			coord endpoint_lt = make_pair(points.at(1).first, points.at(1).second);
 			coord endpoint_rb = make_pair(points.at(0).first + 1, points.at(0).second);
-			coord endpoint_rt = make_pair(points.at(1).first +1,points.at(0).second);
+			coord endpoint_rt = make_pair(points.at(1).first +1,points.at(1).second);
 			// bounding box vertices stored
 				vector<coord> hyper_rectangle;
 				hyper_rectangle.push_back(endpoint_lb);
