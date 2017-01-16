@@ -80,23 +80,17 @@ void datagene (int N_par, int n_par) {
     srand((unsigned)time(0));
     //n = 30 + rand() % (N - 1);
     //n_obs = 3 + rand() % (/5);
-    
-    //generate obstalce vertices points, with obstacle origin is not smallest or biggest
-    //while(!(feasible_small_x*feasible_big_x*feasible_big_y*feasible_small_y)) {
-        
         //x_coord[0] = n + rand() % (2*n);
         //y_coord[0] = n + rand() % (2*n);
         
-        for (int i = 0; i < n_obs; i++) {
-            obs_x_coord[i] = 1.5*n + rand() % (2*n);
-            obs_y_coord[i] = 1.5*n + rand() % (2*n);
-        }
+    for (int i = 0; i < n_obs; i++) {
+        obs_x_coord[i] = 1.5*n + rand() % (2*n);
+        obs_y_coord[i] = 1.5*n + rand() % (2*n);
+    }
     origin_x = (obs_x_coord[0] + obs_x_coord[n_obs-1])/2;
     origin_y = (obs_y_coord[0] + obs_y_coord[n_obs-1])/2;
 
-    
-   // }//end while
-    
+
     
     //build the obstacle
     long double angle_array[n_obs];
@@ -127,7 +121,7 @@ void datagene (int N_par, int n_par) {
         //cout << angle_array[i]<<"\n";
         /* index_array[i] <<"\n";*/
     }
-    cout << origin_x << " " << origin_y << endl;
+    //cout << origin_x << " " << origin_y << endl;
     //add starting point to the end, to make a polygon
     // polygon coordinates in order
     int obs_x_polygon[n_obs+1];
@@ -165,7 +159,7 @@ void datagene (int N_par, int n_par) {
     obs_x_polygon[count] = obs_x_polygon[0];
     obs_y_polygon[count] = obs_y_polygon[0];
     for (int i = 0; i <= count; i++) {
-        cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
+        //cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
     }
     
     n_obs = count;
@@ -183,22 +177,22 @@ void datagene (int N_par, int n_par) {
         long double value = 0;
         x_coord[j] = (rand() % (N - 1)) + 1;
         y_coord[j] = (rand() % (N - 1)) + 1;
-        cout << x_coord[j] <<  " " << y_coord[j] << endl;
+        //cout << x_coord[j] <<  " " << y_coord[j] << endl;
         distance_coord = calcu_distance(origin_x, origin_y, x_coord[j], y_coord[j]);
         value = calcu_angle(x_coord[j], y_coord[j], origin_x, origin_y);
-        cout << value <<endl;;
+        //cout << value <<endl;;
         index = findIndex(angle_array, value,n_obs);
-        cout << index <<endl;
+        //cout << index <<endl;
         
         if ((index == (n_obs-1))&&(distance_coord>max(distance[0],distance[n_obs-1]))) {
             is_inside = false;
-            cout << x_coord[j] <<  " " << y_coord[j] << endl;
+            //cout << x_coord[j] <<  " " << y_coord[j] << endl;
             count += 1;
 
         }
         else if((index !=(n_obs-1))&&(distance_coord>max(distance[index],distance[index+1]))) {
             is_inside = false;
-            cout << x_coord[j] <<  " " << y_coord[j] << endl;
+            //cout << x_coord[j] <<  " " << y_coord[j] << endl;
             count += 1;
 
         }
@@ -219,184 +213,8 @@ void datagene (int N_par, int n_par) {
     }
     
     myfile.close();
-    cout << "finished" <<endl;
+    //cout << "finished" <<endl;
     
 }
 
     
-    
-    /*
-    
-    //cout << x_coord[0] <<" "<<y_coord[0] << "\n";
-    //calculat the equation for edge, only count number of edges
-    
-    int constant[n_obs];
-    long double multiple[n_obs];
-    int relay = n_obs;
-    for (int i=0; i<n_obs; i++) {
-        if(obs_y_polygon[relay] == obs_y_polygon[i]) {
-            constant[i] = obs_x_polygon[i];
-            multiple[i] = 0;
-        }
-        else {
-            constant[i] = obs_x_polygon[i]-(obs_y_polygon[i]*obs_x_polygon[relay])/(obs_y_polygon[relay]-obs_y_polygon[i])+
-            (obs_y_polygon[i]*obs_x_polygon[i])/(obs_y_polygon[relay]-obs_y_polygon[i]);
-            //cout << "constant before" << constant[i] <<endl;
-            multiple[i] = (long double)(obs_x_polygon[relay]-obs_x_polygon[i])/(obs_y_polygon[relay]-obs_y_polygon[i]);
-            constant[i] = (long double)(obs_x_polygon[i]-multiple[i]*obs_y_polygon[i]);
-            //cout << "constant after" << constant[i] << endl;
-            relay = i;
-        }
-    }
-    
-    //generate a point and test if it is in the obstacle
-    count = 0;
-    //int Inside[n];
-    //for (int i=0;i<n;i++) {
-      //  Inside[i]=1;
-    //}
-    int j = 0;
-    //long double before = 0;
-    while(count <= n) {
-        
-        int index = 0;
-        long double value = 0;
-        long double temp_coord = 0;
-        long double distance_a = 0;
-        long double distance_b = 0;
-        
-        bool inside = false;
-        //bool double_inside = false;
-        j = count;
-        x_coord[j] = (rand() % (N - 1)) + 1;
-        y_coord[j] = (rand() % (N - 1)) + 1;
-        value = calcu_angle(x_coord[j], y_coord[j], origin_x, origin_y);
-        cout << value <<endl;;
-        index = findIndex(angle_array, value,n_obs);
-        cout << index <<endl;
-        
-        
-     
-        if (origin_y == y_coord[index]) {
-            temp_coord = (long double)1.00000*(y_coord[j]*multiple[index]+constant[index]);
-            distance_a = sqrtf((temp_coord-origin_x)*(temp_coord-origin_x));
-        }
-        else {
-                   }
-     
-        distance_b = calcu_distance(origin_x, origin_y, x_coord[j], y_coord[j]);
-        
-        int temp = n_obs-1;
-        for (int i=0; i<n_obs; i++) {
-            if (((obs_y_polygon[i]< y_coord[j] && obs_y_polygon[temp]>=y_coord[j]) ||
-                 (obs_y_polygon[temp]< y_coord[j] && obs_y_polygon[i]>=y_coord[j]))) {
-                
-                inside^=(long double)1.00000*(y_coord[j]*multiple[i]+constant[i])<(long double)(1.00*x_coord[j]);
-     
-                for (int j =0; j< n_obs; j++){
-                    if ((!inside) && (y_coord[i]==obs_y_polygon[j])) {
-                        inside ^= inside;
-                    }
-                }
-     
-            }
-            temp = i;
-        }
-        temp = n_obs-1;
-        for (int i=0; i<n_obs; i++) {
-            if (((obs_y_polygon[i]< y_coord[j] && obs_y_polygon[temp]>=y_coord[j]) ||
-                 (obs_y_polygon[temp]< y_coord[j] && obs_y_polygon[i]>=y_coord[j]))) {
-                
-                double_inside^=(long double)1.00000*(y_coord[j]*multiple[i]+constant[i])<(long double)(1.00*x_coord[j]);
-     
-                 for (int j =0; j< n_obs; j++){
-                 if ((!inside) && (y_coord[i]==obs_y_polygon[j])) {
-                 inside ^= inside;
-                 }
-                 }
-     
-            }
-            temp = i;
-        }
-
-        
-        if ((!inside)&&(!double_inside )) {
-            //cout << x_coord[j] << " " << y_coord[j] <<"\n";
-            count += 1;
-        }
-    }
-    
-    
-    //cout << count << "\n";
-    
-
-     
-     int Inside[n];
-     for (int i=0;i<n;i++) {
-     Inside[i]=0;
-     }
-     for (int j = 0; j < n; j++){
-     x_coord[j] = (rand() % (N - 1)) + 1;
-     y_coord[j] = (rand() % (N - 1)) + 1;
-     }
-     //remove all duplicates for data points
-     int x_coord_temp[n];
-     int y_coord_temp[n];
-     for (int i=0; i<n; i++) {
-     x_coord_temp[i] = x_coord[i];
-     y_coord_temp[i] = y_coord[i];
-     }
-     for (int i=1; i<n; i++) {
-     for (int j=i+1; j<n;j++) {
-     if(x_coord[i]==x_coord_temp[j] && y_coord[i]==y_coord_temp[j]) {
-     x_coord_temp[j] = N+1;
-     y_coord_temp[j] = N+1;
-     }
-     }
-     }
-     count = 1;
-     for (int i=1; i<n; i++) {
-     if ((x_coord_temp[i] <= N) && (y_coord_temp[i] <= N)) {
-     x_coord[count] = x_coord_temp[i];
-     y_coord[count] = y_coord_temp[i];
-     count += 1;
-     }
-     }
-     //cout << "number of duplicates" << n-count << "\n";
-     n = count;//non-unique points
-     
-     
-     
-     for(int i = 0; i < n_obs; i++) {
-     //cout << angle_array[i] << " ";
-     //cout << index_array[i] << "\n";
-     cout << obs_x_coord[index_array[i]] << " " << obs_y_coord[index_array[i]] << "\n";
-     }
-     cout << obs_x_coord[index_array[0]] << " " << obs_y_coord[index_array[0]] << "\n";
-     cout << "\n";
-     
-     for (int i = 0; i <= n_obs; i++) {
-     cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
-     }
-     
-
-    count = 1;
-    for (int i=0;i<n;i++) {
-        if (Inside[i] == 0) {
-            count += 1;
-            //cout << x_coord[i] << " " << y_coord[i] << "\n";
-        }
-    }
-    for (int i = 0; i <= n_obs; i++) {
-        //cout << obs_x_polygon[i] << " " << obs_y_polygon[i] << "\n";
-    }
-    
-
-    
-    
-
-    //return 0;
-}
-*/
-
-
