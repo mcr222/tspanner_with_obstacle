@@ -867,10 +867,10 @@ result computeResultParameters(graph& tspanner, vector<edge>& edges) {
 		dist = dijkstra_shortest_path(tspanner, edges[i].p1,edges[i].p2,unused);
 
 		dil=dist/edges[i].dist;
-		cout << edges[i].p1 << " " << edges[i].p2 << endl;
+		/*cout << edges[i].p1 << " " << edges[i].p2 << endl;
 		cout <<"p1 "<< getpoint(edges[i].p1).first << " " << getpoint(edges[i].p1).second << endl;
 		cout <<"p2 " << getpoint(edges[i].p2).first<< " " << getpoint(edges[i].p2).second << endl;
-		cout << dil<< endl;
+		cout << dil<< endl;*/
 		if(dil>dilation_max) {
 			dilation_max=dil;
 		}
@@ -1101,6 +1101,22 @@ map<string, vector<coord>> split_points(vector<coord> points, vector<coord> boun
 	}
 
 	else{
+
+
+		// check if all points equal
+				coord point = points.at(0);
+				int t=0;
+				for(size_t i =0;i<points.size();i++){
+					if(points.at(i) == point){
+						t++;
+					}
+				}
+				if(t== points.size()){
+					cout<<"Single point repeated in split_trees("<<points.at(0).first<<","<<points.at(0).second<<")"<<endl;
+					splits["single"] = points;
+					return splits;
+				}
+
 		// split points into 4 sets based on these 2 sides.
 			double split_at_x;
 			double split_at_y;
@@ -1521,7 +1537,7 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float s){
 		}
 
 
-void writeFile(char filename[], int depth) {
+void writeFile(string filename, int depth) {
 	/*
 	 *
 	 * DOES NOT WRITE TO FILE. will change after format decided upon
@@ -1601,7 +1617,7 @@ void execute_greedy(string filename){
 
 	writeFile(filename, tspanner, res);
 
-	system( "python plot.py" );
+	//system( "python plot.py" );
 
 
 	//writeFile(filename, obstacle_visibility, res);
@@ -1628,8 +1644,9 @@ void execute_WSPD(string filename){
 	res.execution_time = execution_timer;
 	cout << "result: " << res.dilation << " " << res.size << " " << res.weight << " " << res.execution_time << endl;
 
+	//writeFile(filename, 0);
 	writeFile(filename, tspanner, res);
-	system( "python plot.py" );
+	//system( "python plot.py" );
 }
 
 int main() {
@@ -1638,7 +1655,7 @@ int main() {
 
 	string file="g";
 	cout << "File name:" << endl;
-	//cin >> file;
+	cin >> file;
 	//char filename[] = "data.txt";
 
 	string filename = "Data_examples/"+file+".txt";
@@ -1650,8 +1667,8 @@ int main() {
 //	cout << point_inside_obstacle(make_pair(9,9))<<endl;
 //	cout << point_inside_obstacle(make_pair(0,5))<<endl;
 
-	//execute_greedy(filename);
-	execute_WSPD(filename);
+	execute_greedy(filename);
+	//execute_WSPD(filename);
 
 
 }
