@@ -1,3 +1,9 @@
+/*
+Well-separated pairs constructed using quadtrees built with the the regular midpoint sub-division. 
+The obstacles are not considered here.
+Used only for comparision of the number of WS pairs generated and depth of the quadtree constructed. 
+*/
+
 #include <tuple>
 #include <iostream>
 #include <string>
@@ -744,11 +750,6 @@ void constructWSPD(Quadtree* cell1, Quadtree* cell2, float s) {
 }
 
 void writeFile(char filename[], int depth) {
-	/*
-	 *
-	 * DOES NOT WRITE TO FILE. will change after format decided upon
-	 *
-	 */
 	cout << "Writing output" << endl;
 	ifstream file(filename);
 	string str;
@@ -805,7 +806,7 @@ int main() {
 	quadtree.cellArea = area(outerBoundary);
 	constructQuadTree(&quadtree, pr.points);
 
-	//printQuadTree(&quadtree);
+	printQuadTree(&quadtree);
 
 	int depth = getDepth(&quadtree);
 

@@ -1,3 +1,9 @@
+/*
+Well-separated pairs constructed using quadtrees built with the restricted sub-division approach. 
+The obstacles are not considered here.
+This code is merged in main.cpp where obstacles are considered.
+*/
+
 #include <tuple>
 #include <iostream>
 #include <string>
